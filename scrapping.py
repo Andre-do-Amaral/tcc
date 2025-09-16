@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import time
 from dateutil.relativedelta import relativedelta
+from datetime import datetime, timedelta
 
 def gerar_periodos_mensais(data_inicial, data_final):
     """
@@ -15,7 +16,8 @@ def gerar_periodos_mensais(data_inicial, data_final):
     
     while data_corrente < data_final:
         # O início do período é o primeiro dia do mês corrente
-        inicio_periodo = data_corrente.replace(day=1)
+        #inicio_periodo = data_corrente.replace(day=1)
+        inicio_periodo = data_corrente
         
         # O fim do período é o último dia do mesmo mês
         fim_periodo = inicio_periodo + relativedelta(months=1) - relativedelta(days=1)
@@ -97,9 +99,23 @@ def main():
     """
     Função principal para orquestrar o scraping de dados históricos.
     """
+    
+
+    year_final = datetime.today().year
+    mes_final = datetime.today().month
+    dia_final = datetime.today().day
+
+    dados = pd.read_csv('dados_reservatorio.csv')
+    dados['Data da Medição'] = pd.to_datetime(dados['Data da Medição'], format='%Y-%m-%d')
+    ultima_data = dados['Data da Medição'].max() + timedelta(days=1)
+    ano = ultima_data.year
+    mes = ultima_data.month
+    dia = ultima_data.day
     RESERVATORIO_ID = 29002  # Cachoeira
-    DATA_INICIAL_GERAL = datetime(2000, 1, 1)
-    DATA_FINAL_GERAL = datetime(2025, 9, 10)
+    #DATA_INICIAL_GERAL = datetime(2000, 1, 1)
+    #DATA_FINAL_GERAL = datetime(2025, 9, 10)
+    DATA_INICIAL_GERAL = datetime(ano, mes, dia)
+    DATA_FINAL_GERAL = datetime(year_final, mes_final, dia_final)
 
     print(f"Iniciando coleta de dados para o reservatório ID {RESERVATORIO_ID}")
     print(f"Período total: de {DATA_INICIAL_GERAL.strftime('%d/%m/%Y')} a {DATA_FINAL_GERAL.strftime('%d/%m/%Y')}\n")
@@ -127,7 +143,7 @@ def main():
     if lista_de_dataframes:
         df_final = pd.concat(lista_de_dataframes, ignore_index=True)
         print("\n\n--- Coleta Finalizada com Sucesso! ---")
-        df_final.to_csv("./dados_reservatorio.csv", index=False)
+        df_final.to_csv("./dados_reservatorio_append.csv", index=False)
         print(f"Total de registros coletados: {len(df_final)}")
 
         
@@ -138,6 +154,9 @@ def main():
 
     else:
         print("\nNenhum dado foi coletado no período especificado.")
-
-
+    
+    dados = pd.read_csv('dados_reservatorio.csv')
+    dados_append = pd.read_csv('dados_reservatorio_append.csv')
+    dados_final = pd.concat([dados, dados_append], ignore_index=True)
+    dados_final.to_csv('dados_reservatorio.csv', index=False)
 main()
