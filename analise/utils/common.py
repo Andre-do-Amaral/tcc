@@ -179,6 +179,15 @@ def make_lags(ts, lags, lead_time=1, name='y'):
     axis=1)
 
 
+def make_leads(ts, leads, name='y'):
+  return pd.concat(
+    {
+      f'{name}_lead_{i}': ts.shift(-i)
+      for i in reversed(range(leads))
+    },
+    axis=1)
+
+
 def make_multistep_target(ts, steps, reverse=False):
   shifts = reversed(range(steps)) if reverse else range(steps)
   return pd.concat({f'y_step_{i + 1}': ts.shift(-i) for i in shifts}, axis=1)
