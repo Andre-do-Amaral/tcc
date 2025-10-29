@@ -8,7 +8,7 @@ from scipy.stats import wasserstein_distance
 from sklearn.metrics import root_mean_squared_error, mean_squared_error, mean_absolute_error, r2_score
 
 from sklearn.base import clone
-from sklearn.multioutput import RegressorChain
+from sklearn.multioutput import RegressorChain, MultiOutputRegressor
 
 import plotly.graph_objects as go
 
@@ -323,46 +323,39 @@ class HybridDirect(HybridBase):
 
     _, resid = self.decompose(X, y[self.y_target_name].to_frame())
     resid_full = resid.copy()
-    X_cycle_full = make_lags(resid_full.squeeze(), self.lags).dropna()
-    self.X_cycle_full = X_cycle_full
-    self.X_cycle_columns = X_cycle_full.columns
 
+    self.trend_model = MultiOutputRegressor(clone(self.base_model_trend))
+    self.trend_model.fit(X, y)
+
+    X_cycle_full = make_lags(resid_full.squeeze(), self.lags).dropna()
     resid_y_fore = make_multistep_target(resid_full.squeeze(), steps=self.horizon).dropna()
 
-    self.cycle_model = clone(self.base_model_cycle)
-    y_cycle = resid_y_fore.loc[resid_y_fore.index.intersection(X_cycle_full.index)]
-    X_cycle_fore = X_cycle_full.loc[resid_y_fore.index.intersection(X_cycle_full.index)]
-    self.cycle_model.fit(X_cycle_fore, y_cycle)
+    idx = resid_y_fore.index.intersection(X_cycle_full.index)
+    y_cycle = resid_y_fore.loc[idx]
+    X_cycle = X_cycle_full.loc[idx]
+
+    self.cycle_model = MultiOutputRegressor(clone(self.base_model_cycle))
+    self.cycle_model.fit(X_cycle, y_cycle)
 
     self.resid_full = resid_full
-    self.X_cycle = X_cycle_full
+    self.X_cycle_columns = X_cycle_full.columns
 
   def predict(self, X_future):
-    y_trend_pred = pd.DataFrame(
+    preds_trend = pd.DataFrame(
       self.trend_model.predict(X_future),
-      columns=[self.y_target_name],
-      index=X_future.index
+      index=X_future.index,
+      columns=self.y_columns
     )
-    values = [y_trend_pred.shift(-i) for i in range(self.horizon)]
-    preds_trend = pd.concat(values, axis=1).dropna()
-    preds_trend.columns = self.y_columns
 
-    all_lags = make_lags((self.resid_full).squeeze(), self.lags).fillna(0.0)
+    all_lags = make_lags(self.resid_full.squeeze(), self.lags).fillna(0.0)
     all_lags = all_lags.loc[X_future.index]
-    y_cycle_pred = pd.DataFrame(
+    preds_cycle = pd.DataFrame(
       self.cycle_model.predict(all_lags),
-      columns=self.y_columns,
-      index=all_lags.index
+      index=all_lags.index,
+      columns=self.y_columns
     )
-    
-    y_cycle_pred = y_cycle_pred.loc[preds_trend.index]
-    
-    self.x1 = X_future
-    self.x2 = all_lags
-    self.result1 = preds_trend
-    self.result2 = y_cycle_pred
 
-    result = preds_trend.add(y_cycle_pred, fill_value=0)
+    result = preds_trend.add(preds_cycle, fill_value=0.0)
     return result
 
 
