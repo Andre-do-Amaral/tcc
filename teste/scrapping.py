@@ -94,10 +94,10 @@ for var_id, nome_coluna in VARIAVEIS.items():
             df_temp = pd.DataFrame(dados_json['data'])
             
             # Converte a coluna 'date' para o formato de data, removendo as horas
-            df_temp['date'] = pd.to_datetime(df_temp['date']).dt.date
+            df_temp['Data'] = pd.to_datetime(df_temp['date']).dt.date
             
             # Define a data como o índice do DataFrame
-            df_temp.set_index('date', inplace=True)
+            df_temp.set_index('Data', inplace=True)
             
             # Seleciona apenas a coluna 'value' e a renomeia com o nome correto
             df_temp = df_temp[['value']].rename(columns={'value': nome_coluna})
@@ -131,7 +131,7 @@ if lista_de_dataframes:
     
     # Ordena o índice por data, caso haja alguma desordem
     df_final.sort_index(inplace=True)
-    df_final = pd.concat([dados, df_final]).reset_index().drop('index', axis = 1)  # Adiciona os dados já existentes
+    df_final = pd.concat([dados, df_final.reset_index()]).reset_index().drop('index', axis = 1)  # Adiciona os dados já existentes
     
     print("  -> Consolidação concluída!")
     
