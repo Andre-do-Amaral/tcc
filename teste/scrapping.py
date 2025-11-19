@@ -129,9 +129,21 @@ if lista_de_dataframes:
     # Concatena todos os DataFrames da lista em um só, alinhando pelo índice (data)
     df_final = pd.concat(lista_de_dataframes, axis=1)
     
+    # Garante que o índice seja datetime (não objeto date)
+    df_final.index = pd.to_datetime(df_final.index)
+
     # Ordena o índice por data, caso haja alguma desordem
     df_final.sort_index(inplace=True)
-    df_final = pd.concat([dados, df_final.reset_index()]).reset_index().drop('index', axis = 1)  # Adiciona os dados já existentes
+
+    # Garante que o dataframe original também tenha datetime no campo Data
+    dados['Data'] = pd.to_datetime(dados['Data'], dayfirst=True)
+    dados.set_index('Data', inplace=True)
+
+    # Junta dados antigos e novos
+    df_final = pd.concat([dados, df_final])
+    df_final = df_final[~df_final.index.duplicated(keep='last')]
+
+    #df_final = pd.concat([dados, df_final.reset_index()]).reset_index().drop('index', axis = 1)  # Adiciona os dados já existentes
     
     print("  -> Consolidação concluída!")
     
