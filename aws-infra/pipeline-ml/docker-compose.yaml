@@ -1,0 +1,13 @@
+services:
+  mlflow-client:
+    build:
+      context: .
+    environment:
+      # para acesso ao S3
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
+      # Parametros para o script
+      - MLFLOW_URL=${MLFLOW_URL}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - S3_KEY=${S3_KEY}
