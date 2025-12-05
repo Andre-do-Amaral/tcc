@@ -21,3 +21,53 @@ poetry.lock
 # Others
 *.log
 .DS_Store
+
+# ===========================
+# Arquivos LaTeX gerados
+# ===========================
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.out
+*.run.xml
+*.synctex.gz
+*.toc
+*.fls
+*.fdb_latexmk
+*.nav
+*.snm
+
+# Arquivos temporários comuns
+*.tmp
+*.bak
+*.sav
+
+# PDFs (opcional)
+# Se quiser que o PDF compilado vá para o GitHub, remova a linha abaixo
+*.pdf
+
+# ===========================
+# VS Code
+# ===========================
+.vscode/
+*.code-workspace
+
+# ===========================
+# Sistema operacional
+# ===========================
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Linux
+*~
