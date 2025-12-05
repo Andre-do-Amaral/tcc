@@ -128,45 +128,100 @@ def get_train_test_split_recursive():
 y_vol_rec, X_full_vol, X_vol_train_rec, X_vol_valid_rec, y_vol_train_rec, y_vol_valid_rec = get_train_test_split_recursive()
 
 
+logger.info("--- VERIFICAR NECESSIDADE DE RETREINO DO MODELO ---")
+
+KEY_RESULTADO = "resultado/previsoes.csv"
+LOCAL_PATH_RESULTADO = f"data/{KEY_RESULTADO}"
+KEY_AVALIACAO = "resultado/avaliacao.csv"
+LOCAL_PATH_AVALIACAO = f"data/{KEY_AVALIACAO}"
+os.makedirs("data/resultado", exist_ok=True)
+
+def load_previsoes_from_s3():
+  try:
+    s3.download_file(S3_BUCKET_NAME, KEY_RESULTADO, LOCAL_PATH_RESULTADO)
+    df_previsoes = pd.read_csv(LOCAL_PATH_RESULTADO, sep=';')
+    return df_previsoes
+  except:
+    logger.error(f"Erro ao carregar previsoes.csv")
+    raise
+
+def load_avaliacao_from_s3():
+  try:
+    s3.download_file(S3_BUCKET_NAME, KEY_AVALIACAO, LOCAL_PATH_AVALIACAO)
+    df_avaliacao = pd.read_csv(LOCAL_PATH_AVALIACAO, sep=';')
+    return df_avaliacao
+  except:
+    logger.error(f"Erro ao carregar avaliacao.csv")
+    raise
+
+## s3
+rodar_retreino = False
+try:
+  df_previsoes = load_previsoes_from_s3()
+  df_avaliacao = load_avaliacao_from_s3()
+  
+  #df_previsoes.
+  #df_volume
+  #Data > ultimo treino
+  
+  #rodar_retreino = True
+except Exception as e:
+  rodar_retreino = True
+
+  colunas_MAEs = [f"MAE{i+1}"for i in range(15)]
+  colunas = ["modelo", "inicio"] + colunas_MAEs
+  df = pd.DataFrame(columns=colunas)
+  
+  df.to_csv(LOCAL_PATH_AVALIACAO, index=False)
+  s3 = boto3.client("s3")
+  s3.upload_file(LOCAL_PATH_AVALIACAO, S3_BUCKET_NAME, KEY_AVALIACAO)
+
+
+
 logger.info("--- TREINANDO MODELO ---")
+if(rodar_retreino):
+  with mlflow.start_run() as run:
+    model = ModeloPrevisaoVolume(LinearRegression(fit_intercept=False))
+    model.fit_vazao_natural(X_vn_train_rec, y_vn_train_rec)
+    model.fit_vazao_jusante(X_vj_train_rec, y_vj_train_rec)
+    model.calculate_lags(X_vn_valid_rec)
+    model.fit(X_vol_train_rec, y_vol_train_rec)
 
-with mlflow.start_run() as run:
-  model = ModeloPrevisaoVolume(LinearRegression(fit_intercept=False))
-  model.fit_vazao_natural(X_vn_train_rec, y_vn_train_rec)
-  model.fit_vazao_jusante(X_vj_train_rec, y_vj_train_rec)
-  model.calculate_lags(X_vn_valid_rec)
-  model.fit(X_vol_train_rec, y_vol_train_rec)
+    X_vn_train_rec_drop = X_vn_train_rec.drop(pd.Timestamp("2018-01-01"))
+    y_fit = model.predict(X_vn_train_rec_drop)
+    y_pred = model.predict(X_vn_valid_rec)
 
-  X_vn_train_rec_drop = X_vn_train_rec.drop(pd.Timestamp("2018-01-01"))
-  y_fit = model.predict(X_vn_train_rec_drop)
-  y_pred = model.predict(X_vn_valid_rec)
+    metric = calculate_metrics(
+      y_vol_rec.loc[y_fit.index],
+      y_vol_rec.loc[y_pred.index],
+      y_fit.squeeze(),
+      y_pred.squeeze()
+    )
+    logger.info(metric)
 
-  metric = calculate_metrics(
-    y_vol_rec.loc[y_fit.index],
-    y_vol_rec.loc[y_pred.index],
-    y_fit.squeeze(),
-    y_pred.squeeze()
-  )
-  logger.info(metric)
+    val_metrics = metric.loc["Validação"]
 
-  val_metrics = metric.loc["Validação"]
+    for metric_name, value in val_metrics.items():
+      mlflow.log_metric(metric_name, float(value))
+          
+    # Log do Modelo (Artifact)
+    mlflow.sklearn.log_model(model, "model", registered_model_name="Modelo Volume")
+          
+    run_id = run.info.run_id
+    logger.info(f"Novo modelo treinado. Run ID: {run_id}. Score MAE: {val_metrics['MAE']}")
 
-  for metric_name, value in val_metrics.items():
-    mlflow.log_metric(metric_name, float(value))
-        
-  # Log do Modelo (Artifact)
-  mlflow.sklearn.log_model(model, "model", registered_model_name="Modelo Volume")
-        
-  run_id = run.info.run_id
-  logger.info(f"Novo modelo treinado. Run ID: {run_id}. Score MAE: {val_metrics['MAE']}")
+    # verificar se promove modelo
+    # ...
 
 
-# verificar se promove modelo
-
-# download do modelo promovido do mlflow.
 
 
 logger.info("--- PREVISÃO PARA FUTURO ---")
+
+
+#if(not rodar_retreino):
+  # pegar modelo no mlflow.
+
 
 # Update dos estados internos
 model.update(X_full_vol, y_vol_rec, y_vn, y_vj)
@@ -181,3 +236,38 @@ X_future_vn = dp.out_of_sample(steps=90)
 model.calculate_lags(X_future_vn)
 y_pred = model.predict(X_future_vn)
 logger.info(y_pred)
+
+print(y_pred.to_frame())
+
+
+
+logger.info("--- SALVAR PREVISÃO NO S3 ---")
+from datetime import date, datetime
+
+year = datetime.today().year
+month = datetime.today().month
+day = datetime.today().day
+data_previsao = date(year, month, day)
+
+coluna_previsoes = [f"y_{i+1}" for i in range(90)]
+linha_inserir = y_pred.set_axis(coluna_previsoes).to_frame().T
+linha_inserir["modelo"] = "modelo1"
+linha_inserir["inicio"] = data_previsao
+linha_inserir["alterou_modelo"] = 1 if rodar_retreino else 0
+
+try:
+  df_previsoes = load_previsoes_from_s3()
+except Exception as e:
+  colunas = ["modelo", "inicio", "alterou_modelo"] + coluna_previsoes
+  df_previsoes = pd.DataFrame(columns=colunas)
+
+pd.concat([
+  df_previsoes,
+  linha_inserir
+])
+KEY_PREVISOES = "resultado/previsoes.csv"
+LOCAL_PATH_PREVISOES = f"data/{KEY_PREVISOES}"
+os.makedirs("data/resultado", exist_ok=True)
+df.to_csv(LOCAL_PATH_PREVISOES, index=False)
+s3 = boto3.client("s3")
+s3.upload_file(LOCAL_PATH_PREVISOES, S3_BUCKET_NAME, KEY_PREVISOES)

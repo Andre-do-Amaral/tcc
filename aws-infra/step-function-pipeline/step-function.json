@@ -1,0 +1,79 @@
+{
+  "Comment": "Pipeline MLOps: Sobe Infra -> Avalia -> (Re)Treina -> Prediz -> Derruba Infra",
+  "StartAt": "StartMlflow",
+  "States": {
+    "StartMlflow": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ecs:updateService",
+      "Parameters": {
+        "Cluster": "arn:aws:ecs:us-east-1:542660891168:cluster/tcc-grupo-10-cluster",
+        "Service": "arn:aws:ecs:us-east-1:542660891168:service/tcc-grupo-10-cluster/tcc-grupo10-mlflow-service-uppp",
+        "DesiredCount": 1,
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-00ee6c7313660c248",
+              "subnet-0759dbcc8f29613ac"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
+      },
+      "ResultPath": "$.mlflowTask",
+      "Next": "WaitForMlflowBoot"
+    },
+    "WaitForMlflowBoot": {
+      "Comment": "Espera 60s para o container do MLflow iniciar o servidor web",
+      "Type": "Wait",
+      "Seconds": 5,
+      "Next": "ExtractData"
+    },
+    "ExtractData": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:542660891168:function:tcc-grupo10-data-ingestion-function:$LATEST"
+      },
+      "ResultPath": "$.extractResult",
+      "Next": "StartPipelineMl"
+    },
+    "StartPipelineMl": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "Cluster": "arn:aws:ecs:us-east-1:542660891168:cluster/tcc-grupo-10-cluster",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:542660891168:task-definition/tcc-grupo10-pipeline-ml",
+        "LaunchType": "FARGATE",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-00ee6c7313660c248",
+              "subnet-0759dbcc8f29613ac"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
+      },
+      "Next": "StopMlflow"
+    },
+    "StopMlflow": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ecs:updateService",
+      "Parameters": {
+        "Cluster": "arn:aws:ecs:us-east-1:542660891168:cluster/tcc-grupo-10-cluster",
+        "Service": "arn:aws:ecs:us-east-1:542660891168:service/tcc-grupo-10-cluster/tcc-grupo10-mlflow-service-uppp",
+        "DesiredCount": 0,
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-00ee6c7313660c248",
+              "subnet-0759dbcc8f29613ac"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
+      },
+      "End": true
+    }
+  }
+}
