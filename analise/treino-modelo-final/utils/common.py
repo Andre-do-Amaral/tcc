@@ -45,42 +45,11 @@ def make_leads(ts, leads, name='y'):
     axis=1)
 
 
-def wasserstein_row_error(y_true, y_pred):
-  y_true = np.array(y_true)
-  y_pred = np.array(y_pred)
-    
-  row_distances = [wasserstein_distance(y_true[i], y_pred[i]) for i in range(y_true.shape[0])]
-  return np.mean(row_distances)
-
-
-def get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid):
-  use_row_error = False
-  if isinstance(y_fit_train, pd.Series):
-    use_row_error = False
-  elif isinstance(y_fit_train, pd.DataFrame):
-    use_row_error = len(y_fit_train.columns) > 1
-  else:
-    raise RuntimeError("Objeto deve ser Série ou Dataframe")
-  if use_row_error:
-    return [
-      wasserstein_row_error(y_train, y_fit_train), 
-      wasserstein_row_error(y_valid, y_fit_valid)
-    ]
-  else:
-    return [
-      wasserstein_distance(y_train, y_fit_train),
-      wasserstein_distance(y_valid, y_fit_valid)
-    ]
-
-
 def calculate_metrics(y_train, y_valid, y_fit_train, y_fit_valid, label=None):
   metrics = {
     'RMSE': [root_mean_squared_error(y_train, y_fit_train), root_mean_squared_error(y_valid, y_fit_valid)],
     'MSE': [mean_squared_error(y_train, y_fit_train), mean_squared_error(y_valid, y_fit_valid)],
-    'MAE': [mean_absolute_error(y_train, y_fit_train), mean_absolute_error(y_valid, y_fit_valid)],
-    #'R2': [r2_score(y_train, y_fit_train), r2_score(y_valid, y_fit_valid)],
-    #'Wasserstein': get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid)
-  }
+    'MAE': [mean_absolute_error(y_train, y_fit_train), mean_absolute_error(y_valid, y_fit_valid)],  }
 
   metrics_df = pd.DataFrame(metrics, index=['Treino', 'Validação'])
   if label is not None:
@@ -154,7 +123,7 @@ class HybridBase:
         self.resid_full.index.union(missing)
       )
       self.resid_full.loc[cycle_predicted.index, resid_column_name] = cycle_predicted.loc[cycle_predicted.index, resid_column_name]
-
+      #return self.resid_full.loc[X_future.index]
 
 class HybridRecursive(HybridBase):
   """ Estratégia recursiva """
@@ -319,28 +288,27 @@ class AutoregressiveEngine:
 
 
 class ModeloPrevisaoVolume():
-  def __init__(self, base_model):
+  def __init__(self, base_model, usar_jusante=False, modelo_vazao_juzante = HybridRecursive(LinearRegression(), RandomForestRegressor(), lags=2), modelo_vazao_natural = HybridRecursive(Lasso(), KNeighborsRegressor(), lags=2)):
     self.base_model = clone(base_model)
-    self.usar_jusante = False
-    self.engine = None
+    self.usar_jusante = usar_jusante
+    self.engine = AutoregressiveEngine(self)
+    self.modelo_vazao_jusante = modelo_vazao_juzante
+    self.modelo_vazao_natural = modelo_vazao_natural
 
   """ Calcula lags para variáveis exógenas """
   def calculate_lags(self, X_valid_rec):
     self.modelo_vazao_natural.calculate_lags(X_valid_rec)
     if(self.usar_jusante):
       self.modelo_vazao_jusante.calculate_lags(X_valid_rec)
+    
 
   """ Treinamento para Vazão Natural """
   def fit_vazao_natural(self, X, y):
-    # Lasso/KNeighborsRegressor
-    self.modelo_vazao_natural = HybridRecursive(Lasso(), KNeighborsRegressor(), lags=2)
     self.modelo_vazao_natural.fit(X, y)
 
   """ Treinamento para Vazão Jusante """
   def fit_vazao_jusante(self, X, y):
     self.usar_jusante = True
-    # LinearRegression/RandomForestRegressor
-    self.modelo_vazao_jusante = HybridRecursive(LinearRegression(), RandomForestRegressor(), lags=2)
     self.modelo_vazao_jusante.fit(X, y)
 
   def fit(self, X, y):
@@ -359,8 +327,6 @@ class ModeloPrevisaoVolume():
       self.modelo_volume.fit(X_sem_jusante, y)
       self.X_feat_hist = X_sem_jusante
 
-    # Agora entra a engine
-    self.engine = AutoregressiveEngine(self)
     self.engine.fit(X, y)
 
   def predict(self, X_future):
