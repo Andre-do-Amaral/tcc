@@ -3,50 +3,7 @@
 % ----------------------------------------------------------
 Deve-se inserir texto entre as seções.
 
-\section{Análise Exploratória de Dados (EDA) do Sistema Cantareira}
 
-\subsection{O Sistema Cantareira}
-
-Conforme dados do XXXXXXXXXXXXXX, o Sistema Cantareira, é um dos principais abastecedores de água da RMSP, sendo o maior produtor de água da região, responsável por cerca de 46\% do abastecimento, com uma vazão de 33m³/s e um volume útil máximo de 973,9 bilhões de litros. Vale ressaltar que, volume útil ou volume operacional é o volume utilizado para o fornecimento de água, o volume total do sistema é a soma do volume útil e o volume de reserva técnica, que é a porção mantida para emergências, como manutenções e secas extremas de acordo com site da sabesp conforme a Figura 1.  
-
-Figura 1: Esquema de volumes armazenados nos reservatórios
-
-
-O Sistema Cantareira é composto pelos reservatórios Jaguari, Jacareí, Cachoeira, Atibainha e Paiva Castro, que são conectados por estruturas de canais e túneis subterrâneos, assim formando o Sistema Equivalente do Cantareira, que recebe afluências das bacias hidrográficas do Rio Piracicaba, Alto Tietê e do Rio Paraíba do Sul. Dos 33m³/s de vazão produzida, a maior parte vem da bacia do Piracicaba, sendo 22m³/s dos reservatórios Jaguari/Jacareí, e apenas 2m³/s do Alto Tietê (XXXXXXXXXXXX). A Figura 2 a seguir apresenta um esquema geral do sistema completo, onde é possível visualizar o fluxo das vazões, os tuneis que interligam o sistema e os reservatórios até chegar na estação de tratamento de água (ETA) de Guaraú, onde será distribuída para RMSP. Os valores numéricos da imagem, que informam as vazões no sistema e volume armazenado nos reservatórios, correspondem aos valores no dia consultado, e variam ao longo do tempo. 
-
-Figura 2: Esquema do Sistema Equivalente Cantareira
-
-Conforme citado anteriormente, a operação do Sistema Cantareira é feita pela SABESP, porém sua gestão fica também sob responsabilidade da ANA e DAEE, juntos esses órgãos são responsáveis por garantir o funcionamento sustentável e manter o fornecimento de água. Parte da gestão desse sistema, consiste na coleta de dados relacionados a sua operação, que compreendem variáveis como: volume útil armazenado, volume total armazenado, vazões afluentes, vazões juzantes, precipitação, nível de água dos reservatórios, dentre outras variáveis importantes. Esses dados estão disponíveis no site da ANA e também no site da SABESP são atualizados diariamente, e são registrados desde janeiro de 2000. 
-
-A amostra pública de dados, que está disponível para download em ambos os sites, possui os dados específicos de cada reservatório, de cada túnel, bem como possui os dados compilados que são referentes ao Sistema Equivalente Cantareira (SE) como um todo. A nossa variável alvo é o volume útil expresso em porcentagem (\%), e todos os dados que utilizamos em nossas análises correspondem ao SE. A tabela 1 a seguir é uma amostra do dataset que foi construído para o desenvolvimento deste trabalho, a partir dos dados públicos do site da SABESP, para tal realizamos um scrapping na página onde os dados se encontram disponíveis, que será melhor detalhado nos capítulos seguintes. 
-
-Tabela 1 – Amostra de dados do dataset utilizado na análise exploratória
-
-Legenda da tabela 1: 
-
-Explicar o que significa cada variavel, volume útil, vazão natural, vazão juzante.... 
-
-\subsection{Análise de Série Temporais das Variáveis de Interesse ?}
-
-*Aqui nessa parte estou em dúvida se mostraríamos uma análise de todas as variáveis de interesse, contextualizando como uma se relaciona com a outra, ou se é melhor mostrar uma analise completa só pra variável de volume, outra pra vazão natural, outra pra jusante... *
-
-Uma série temporal, nada mais é, do que um registro de dados ao longo do tempo, organizados de forma cronológica. Analisar uma série temporal, nada mais é do que entender os dados com a finalidade de obter informações, entender o comportamento da variável analisada, e a partir do aprendizado do passado, tentar predizer o futuro (XXXXXXXXXXXX).  Conforme citado anteriormente, a nossa variável alvo é o volume útil (\%) do SE, na Figura 3 a seguir, podemos visualizar os registros da nossa variável ao longo do tempo, no período de dados coletados do site da SABESP. 
-
-Figura 3 – Gráfico da Série Temporal do Volume Útil do Sistema Equivalente Cantareira entre 2000 e 2025.
-
-Através da análise da Figura 3, podemos perceber que entre 2014 e 2015 houve uma baixa anormal do volume do Sistema Cantareira, período em que foi registrada uma das piores crises hídricas da história, onde de acordo com dados da ANA, publicados pelo (XXXXXXXXXXXXXXXXXX), as vazões afluentes tiveram valores excepcionalmente baixos entre outubro de 2013 e março de 2014, e ao longo de 2014 e 2015 continuaram reduzidos, sendo registrados os menores valores das médias histórias, sendo até então o pior valor registrado em 1953. Tal crise hídrica coincidiu com um dos piores períodos de estiagem registrado nas últimas décadas. De acordo com (XXXXXXXXXXXXXXXX), o déficit da precipitação acumulada em relação a média histórica chegou a valores entre 95,5 e 143,6 mm nos meses entre novembro de 2013 e janeiro de 2015, período onde foram registradas precipitações bem abaixo da média histórica. 
-
-São diversos os fatores que podem influenciar na variação do volume armazenado nos reservatórios so sistema, como por exemplo: volume de precipitação, clima (temperaturas mais altas, maior evaporação), volume escoado das águas subterrâneas de lençóis freáticos, e escoamento das águas superficiais de rios. Todos esses eventos fazem parte do ciclo hidrológico da água conforme informações da (XXXXXXXXXXXXX). Podemos dizer que, esses eventos, também influenciam na vazão natural, ou vazão afluente, já que ela depende do volume de água disponível para acontecer. Inclusive, conforme citado anteriormente, um dos primeiros sinais da crise hídrica de 2014 e 2015, foram valores muito baixos de vazões afluente observados entre 2013 e 2014 conforme (XXXXXXXXXXXXXX). 
-
-Sendo assim, para este estudo, entendeu-se ser útil analisar outra variável, além da variável alvo, que possa inclusive servir como uma variável exógena na modelagem da série temporal, e conforme será detalhado nos próximos capítulos, a utilização da variável exógena contribuiu para o modelo preditivo, melhorando seu desempenho. Com isso, na Figura 4 a seguir, podemos observar o gráfico com a série temporal da vazão natural do SE Cantareira. 
-
-Figura 4 – Gráfico da Série Temporal do Volume Útil e Vazão Natural do Sistema Equivalente Cantareira entre 2000 e 2025.
-
-Desse modo, após alguns testes na fase de desenvolvimento dos modelos preditivos, que serão detalhadas nos próximos capítulos, entendeu-se ser melhor trabalhar com uma janela de dados que não englobasse os dados entre 2014 e 2015, já que são dados excepcionalmente diferentes da média histórica. A Figura 5 a seguir apresenta o gráfico com a série temporal do volume útil (\%) do Sistema Equivalente Cantareira entre 2016 e 2025, período de dados escolhido para desenvolvimento do projeto, e onde podemos observar melhor uniformidade no comportamento dos dados ao longo dos anos. 
-
-Figura 5 – Gráfico da Série Temporal do Volume Útil do Sistema Equivalente Cantareira entre 2016 e 2025.
-
-Daqui pra baixo é o que veio no arquivo de template, deixei pra conseguirmos ver como criar uma figura, uma seção, uma subseção e etc... posteriormente apagamos. 
 \begin{figure}[htb]
 	\caption{\label{fig:Fig_1}Elementos do trabalho acadêmico.}
 	\begin{center}
