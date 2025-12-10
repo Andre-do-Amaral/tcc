@@ -1,20 +1,28 @@
 import matplotlib.pyplot as plt
 plt.rcParams["figure.figsize"] = (15, 6)
-import pandas as pd
 import seaborn as sns
+import plotly.graph_objects as go
 
+import pandas as pd
 import numpy as np
+
 from scipy.stats import wasserstein_distance
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import root_mean_squared_error, mean_squared_error, mean_absolute_error, r2_score
 
 from sklearn.base import clone
 from sklearn.multioutput import RegressorChain, MultiOutputRegressor
+from sklearn.dummy import DummyRegressor
+from sklearn.linear_model import LinearRegression, ElasticNet, Lasso, Ridge
 
-import plotly.graph_objects as go
+from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from xgboost import XGBRegressor
 
 
 def import_dataframe():
-  df = pd.read_csv('../data/tab_cantareira.csv', sep=';', parse_dates=['Data'], dayfirst=True)
+  df = pd.read_csv('data/dados_sabesp_cantareira_historico.csv', sep=';', parse_dates=['Data'], dayfirst=True)
   for col in df.columns:
     if df[col].dtype == "object":
       try:
@@ -254,10 +262,10 @@ def get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid):
 def calculate_metrics(y_train, y_valid, y_fit_train, y_fit_valid, label=None):
   metrics = {
     'RMSE': [root_mean_squared_error(y_train, y_fit_train), root_mean_squared_error(y_valid, y_fit_valid)],
-    'MSE': [mean_squared_error(y_train, y_fit_train), mean_squared_error(y_valid, y_fit_valid)],
+    #'MSE': [mean_squared_error(y_train, y_fit_train), mean_squared_error(y_valid, y_fit_valid)],
     'MAE': [mean_absolute_error(y_train, y_fit_train), mean_absolute_error(y_valid, y_fit_valid)],
-    'R2': [r2_score(y_train, y_fit_train), r2_score(y_valid, y_fit_valid)],
-    'Wasserstein': get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid)
+    #'R2': [r2_score(y_train, y_fit_train), r2_score(y_valid, y_fit_valid)],
+    #'Wasserstein': get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid)
   }
 
   metrics_df = pd.DataFrame(metrics, index=['Treino', 'Validação'])
@@ -287,6 +295,26 @@ class HybridBase:
     self.y_fit = y_fit
     return y_fit, resid
   
+  def update(self, resid_new: pd.DataFrame | pd.Series):
+    """
+    Atualiza estado interno
+    """
+    if isinstance(resid_new, pd.Series):
+      resid_new = resid_new.to_frame(name=self.resid_full.columns[0])
+
+    col = self.resid_full.columns[0]
+
+    # Garante que os índices existem no histórico
+    missing_idx = resid_new.index.difference(self.resid_full.index)
+    if len(missing_idx) > 0:
+      self.resid_full = self.resid_full.reindex(
+        self.resid_full.index.union(missing_idx)
+      ).sort_index()
+
+    self.resid_full.loc[resid_new.index, col] = resid_new[col]
+
+    self.last_index = self.resid_full.index.max()
+
   def calculate_lags(self, X_future):
     """ Calcular residuos futuros utilizando ciclo"""
     if(self.resid_full is None):
@@ -312,6 +340,43 @@ class HybridBase:
         self.resid_full.index.union(missing)
       )
       self.resid_full.loc[cycle_predicted.index, resid_column_name] = cycle_predicted.loc[cycle_predicted.index, resid_column_name]
+
+
+class HybridRecursive(HybridBase):
+  """ Estratégia recursiva """
+  def fit(self, X, y):
+    self.y_columns = [y.name]
+    self.y_target_name = self.y_columns[0]
+
+    y_fit, resid = self.decompose(X, y.to_frame())
+    resid_full = resid.copy()
+    self.resid_full = resid_full
+    X_cycle = make_lags(resid_full.squeeze(), self.lags).dropna()
+    y_cycle = resid.loc[X_cycle.index]
+
+    self.cycle_model = clone(self.base_model_cycle)
+    self.cycle_model.fit(X_cycle, y_cycle)
+    
+    self.last_index = y.index[-1]
+    self.X_cycle_columns = X_cycle.columns
+
+  def predict(self, X_future):
+    """Recursive forecast for given future regressors (X_future)."""
+    y_trend_pred = pd.DataFrame(
+      self.trend_model.predict(X_future),
+      columns=[self.y_target_name],
+      index=X_future.index
+    )
+
+    all_lags = make_lags((self.resid_full).squeeze(), self.lags).fillna(0.0)
+    all_lags = all_lags.loc[X_future.index]
+    y_cycle_pred = pd.DataFrame(
+      self.cycle_model.predict(all_lags),
+      columns=self.y_columns,
+      index=all_lags.index
+    )
+    result = y_trend_pred.add(y_cycle_pred, fill_value=0)
+    return result
 
 
 class HybridDirect(HybridBase):
@@ -356,44 +421,6 @@ class HybridDirect(HybridBase):
     )
 
     result = preds_trend.add(preds_cycle, fill_value=0.0)
-    return result
-
-
-class HybridRecursive(HybridBase):
-  """ Estratégia recursiva """
-  def fit(self, X, y):
-    self.y_columns = [y.name]
-    self.y_target_name = self.y_columns[0]
-
-    y_fit, resid = self.decompose(X, y.to_frame())
-    resid_full = resid.copy()
-    self.resid_full = resid_full
-    X_cycle = make_lags(resid_full.squeeze(), self.lags).dropna()
-    y_cycle = resid.loc[X_cycle.index]
-
-    self.cycle_model = clone(self.base_model_cycle)
-    self.cycle_model.fit(X_cycle, y_cycle)
-    
-    self.resid_hist = resid.iloc[-self.lags:].to_numpy().ravel()
-    self.last_index = y.index[-1]
-    self.X_cycle_columns = X_cycle.columns
-
-  def predict(self, X_future):
-    """Recursive forecast for given future regressors (X_future)."""
-    y_trend_pred = pd.DataFrame(
-      self.trend_model.predict(X_future),
-      columns=[self.y_target_name],
-      index=X_future.index
-    )
-
-    all_lags = make_lags((self.resid_full).squeeze(), self.lags).fillna(0.0)
-    all_lags = all_lags.loc[X_future.index]
-    y_cycle_pred = pd.DataFrame(
-      self.cycle_model.predict(all_lags),
-      columns=self.y_columns,
-      index=all_lags.index
-    )
-    result = y_trend_pred.add(y_cycle_pred, fill_value=0)
     return result
 
 
@@ -516,5 +543,348 @@ def plot_multistep_plotly(y, y_forecast, every=1, palette_kwargs=None, title=Non
 
   return fig
 
+
 def get_model_name(model):
   return f'{model}'.split('(')[0]
+
+
+def highlight_val_only(s):
+  if 'Validação' not in s.index.get_level_values('Dados'):
+    return [''] * len(s)
+  mask = s.index.get_level_values('Dados') == 'Validação'
+
+  if s.name == 'R2':
+    best_val = s[mask].max()
+    worst_val = s[mask].min()
+  else:
+    best_val = s[mask].min()
+    worst_val = s[mask].max()
+
+  return [
+    'background-color: #ff3333; color: white; font-weight: bold;' if v == worst_val and m else
+    'background-color: #00cc66; color: white; font-weight: bold;' if v == best_val and m else ''
+      for v, m in zip(s, mask)
+  ]
+
+
+def rodar_treino_vazoes_kfold(
+  model_name,
+  model1,
+  model2,
+  splitter,
+  results_array,
+  dados,
+  recursivo=None,
+  direto=None,
+  dir_rec=None
+):
+  if (recursivo == None
+      and direto == None
+      and dir_rec == None):
+    raise Exception("Uma das estratégias deve estar selecionada (True): recursivo, direto ou dir_rec.")
+  
+  folds_metrics = []
+  X_usado = dados["X_rec"] if recursivo else dados["X_dir"]
+  y_usado = dados["y_rec"] if recursivo else dados["y_dir"]
+  y_plot = dados["y_rec"]
+  for fold_idx, (train_idx, test_idx) in enumerate(splitter.split(X_usado)):
+    X_train_fold = X_usado.iloc[train_idx]
+    X_test_fold = X_usado.iloc[test_idx]
+    y_train_fold = y_usado.iloc[train_idx]
+    y_test_fold = y_usado.iloc[test_idx]
+    if recursivo:
+      model = HybridRecursive(
+        clone(model1),
+        clone(model2),
+        lags=2
+      )
+    elif direto:
+      model = HybridDirect(
+        clone(model1),
+        clone(model2),
+        lags=2
+      )
+    elif dir_rec:
+      model = HybridDirRec(
+        clone(model1),
+        clone(model2),
+        lags=2
+      )
+    model.fit(X_train_fold, y_train_fold)
+    model.calculate_lags(X_test_fold)
+
+    y_fit = model.predict(X_train_fold)
+    y_pred = model.predict(X_test_fold)
+
+    metrics = calculate_metrics(
+      y_usado.loc[y_fit.index],
+      y_usado.loc[y_pred.index],
+      y_fit.squeeze(),
+      y_pred.squeeze(),
+      label = model_name
+    )
+    folds_metrics.append(metrics)
+  df_folds = pd.concat(folds_metrics)
+  df_agg = df_folds.groupby(['Modelo', 'Dados']).agg(['mean', 'std', 'min', 'max'])
+  results_array.append(df_agg)
+  return df_agg
+
+
+def rodar_treino_vazoes_view(
+  model1,
+  model2,
+  dados,
+  VALIDATION_SIZE=360,
+  recursivo=None,
+  direto=None,
+  dir_rec=None
+):
+  if (recursivo == None
+      and direto == None
+      and dir_rec == None):
+    raise Exception("Uma das estratégias deve estar selecionada (True): recursivo, direto ou dir_rec.")
+  if recursivo:
+    model = HybridRecursive(
+      clone(model1),
+      clone(model2),
+      lags=2
+    )
+  elif direto:
+    model = HybridDirect(
+      clone(model1),
+      clone(model2),
+      lags=2
+    )
+  elif dir_rec:
+    model = HybridDirRec(
+      clone(model1),
+      clone(model2),
+      lags=2
+    )
+
+  if recursivo:
+    X_train, X_valid, y_train, y_valid = train_test_split(dados['X_rec'], dados['y_rec'], test_size=VALIDATION_SIZE, shuffle=False)
+  else:
+    X_train, X_valid, y_train, y_valid = train_test_split(dados['X_dir'], dados['y_dir'], test_size=VALIDATION_SIZE, shuffle=False)
+
+  model.fit(X_train, y_train)
+  model.calculate_lags(X_valid)
+
+  y_fit = model.predict(X_train)
+  y_pred = model.predict(X_valid)
+
+  y_view = dados['y_rec']
+  if recursivo:
+    plot_plotly(
+      y_view.loc[y_fit.index],
+      y_fit,
+      title="Forecast - Treino"
+    )
+
+    plot_plotly(
+      y_view.loc[y_pred.index],
+      y_pred,
+      title="Forecast - Validação"
+    )
+  else:
+    fig1 = plot_multistep_plotly(
+      y_view.loc[y_fit.index],
+      y_fit,
+      every=10,
+      palette_kwargs=dict(palette='husl', n_colors=64),
+      title="Forecast - Treino"
+    )
+    fig1.show()
+
+    fig2 = plot_multistep_plotly(
+      y_view.loc[y_pred.index],
+      y_pred,
+      every=10,
+      palette_kwargs=dict(palette='husl', n_colors=64),
+      title="Forecast - Validação"
+    )
+    fig2.show()
+
+
+class AutoregressiveEngine:
+  def __init__(self, modelo_volume):
+    self.modelo = modelo_volume
+    self.modelo_volume = self.modelo.modelo_volume
+    self.vol_history = None
+    self.X_feat_hist = None
+
+  def fit(self, X, y):
+    self.vol_history = self.modelo.vol_history.copy()
+    self.X_feat_hist = self.modelo.X_feat_hist.copy()
+
+  def get_X_exog_fore(self, X_future, new_row):
+    try:
+      X_exog_fore = X_future.loc[new_row.index]
+      X_exog_fore.index.name = X_future.index.name
+      return X_exog_fore
+    except KeyError:
+      data = new_row.index.astype(str).to_list()[0]
+      raise RuntimeError("A data "+data+" deve estar presente do dataframe para previsão.")
+    
+  def get_X_to_forecast(self, last_row_lag, X_exog_fore):
+    # Previsão Vazão de Entrada
+    y_vn_fore = self.modelo.modelo_vazao_natural.predict(X_exog_fore)
+
+    y_vn_fore = pd.Series(y_vn_fore.values.ravel(), index=y_vn_fore.index)
+    y_vn_fore.index.name = self.vol_history.index.name
+    X_leads_Qin = make_leads(y_vn_fore, 1, name="Qin")
+
+    if(self.modelo.usar_jusante):
+      y_vj_fore = self.modelo.modelo_vazao_jusante.predict(X_exog_fore)
+      y_vj_fore = pd.Series(y_vj_fore.values.ravel(), index=y_vj_fore.index)
+      y_vj_fore.index.name = self.vol_history.index.name
+      X_leads_Qout = make_leads(y_vj_fore, 1, name="Qout")
+      X_fore = pd.concat([last_row_lag, X_leads_Qin, X_leads_Qout], axis=1).dropna()
+    else:
+      X_fore = pd.concat([last_row_lag, X_leads_Qin], axis=1).dropna()
+    
+    self.X_feat_hist = pd.concat([self.X_feat_hist, X_fore])
+    return X_fore
+
+  def step(self, X_future, step_date):
+    """
+    Executa exatamente UM passo autoregressivo.
+    """
+    vol_column_name = self.vol_history.columns[0]
+
+    # Cria linha dummy
+    new_row = pd.DataFrame(
+      {vol_column_name: [0.0]},
+      index=[step_date]
+    )
+
+    # Exógenas do futuro
+    X_exog_fore = self.get_X_exog_fore(X_future, new_row)
+
+    # Atualiza histórico
+    new_hist = pd.concat([self.vol_history, new_row])
+    new_hist.index.name = self.vol_history.index.name
+
+    # Calcula lags
+    new_lags = make_lags(new_hist.squeeze(), 1)
+    last_row_lag = new_lags.tail(1)
+
+    # Monta features completas (lags + leads)
+    X_fore = self.get_X_to_forecast(last_row_lag, X_exog_fore)
+
+    # Previsão do volume
+    y_new_volume = self.modelo_volume.predict(X_fore)
+
+    # Atualiza histórico de volumes
+    self.vol_history.loc[step_date, vol_column_name] = y_new_volume.ravel()[0]
+
+    return y_new_volume.ravel()[0]
+
+  def get_features(self, X_future):
+    return self.X_feat_hist.loc[X_future.index]
+
+  def predict(self, X_future):
+    """
+    Executa previsão autoregressiva completa.
+    """
+    if self.vol_history is None:
+      raise RuntimeError("Engine não treinada")
+
+    preds = []
+
+    for timestamp in X_future.index:
+      if timestamp not in self.vol_history.index:
+        y_hat = self.step(X_future, timestamp)
+      else:
+        X_to_predict = self.get_features(X_future)
+        X_row = X_to_predict.loc[[timestamp]]
+        y_hat = self.modelo_volume.predict(X_row)[0]
+
+      preds.append(y_hat)
+    
+    return pd.Series(preds, index=X_future.index)
+
+  def update(self, X_vol_new, vol_new, vn_new, vj_new):
+    """
+    Atualiza o histórico usando valores reais observados.
+    Usado após validação, antes da previsão futura.
+    """
+    self.modelo.modelo_vazao_natural.update(vn_new)
+    if self.modelo.usar_jusante:
+      self.modelo.modelo_vazao_jusante.update(vj_new)
+    if isinstance(vol_new, pd.Series):
+      vol_new = vol_new.to_frame(name=self.vol_history.columns[0])
+    col = self.vol_history.columns[0]
+
+    # Garante que os índices existem no histórico
+    missing_idx = vol_new.index.difference(self.vol_history.index)
+    if len(missing_idx) > 0:
+      self.vol_history = self.vol_history.reindex(
+        self.vol_history.index.union(missing_idx)
+      ).sort_index()
+
+    # SOBRESCREVE resíduos previstos com resíduos reais
+    self.vol_history.loc[vol_new.index, col] = vol_new[col]
+
+    self.X_feat_hist.loc[vol_new.index] = X_vol_new
+
+    self.last_index = self.vol_history.index.max()
+
+
+class ModeloPrevisaoVolume():
+  def __init__(
+    self,
+    base_model,
+    usar_jusante=False,
+    modelo_vazao_natural=HybridRecursive(Lasso(), KNeighborsRegressor(), lags=2),
+    modelo_vazao_jusante=HybridRecursive(LinearRegression(), RandomForestRegressor(), lags=2)
+  ):
+    self.base_model = clone(base_model)
+    self.modelo_vazao_natural = modelo_vazao_natural
+    self.modelo_vazao_jusante = modelo_vazao_jusante
+    self.usar_jusante = usar_jusante
+    self.engine = None
+
+  """ Calcula lags para variáveis exógenas """
+  def calculate_lags(self, X_valid_rec):
+    self.modelo_vazao_natural.calculate_lags(X_valid_rec)
+    if(self.usar_jusante):
+      self.modelo_vazao_jusante.calculate_lags(X_valid_rec)
+
+  """ Treinamento para Vazão Natural """
+  def fit_vazao_natural(self, X, y):
+    self.modelo_vazao_natural.fit(X, y)
+
+  """ Treinamento para Vazão Jusante """
+  def fit_vazao_jusante(self, X, y):
+    self.modelo_vazao_jusante.fit(X, y)
+
+  def fit(self, X, y):
+    y_to_fit = y.copy() if isinstance(y, pd.DataFrame) else y.to_frame().copy()
+
+    self.vol_history = y_to_fit[y_to_fit.columns[0]].to_frame()
+    self.y_columns = y_to_fit.columns
+
+    self.modelo_volume = self.base_model
+
+    if self.usar_jusante:
+      self.modelo_volume.fit(X, y)
+      self.X_feat_hist = X
+    else:
+      X_sem_jusante = X[[x for x in X.columns if not x.startswith("Qout_")]]
+      self.modelo_volume.fit(X_sem_jusante, y)
+      self.X_feat_hist = X_sem_jusante
+
+    self.engine = AutoregressiveEngine(self)
+    self.engine.fit(X, y)
+
+  def predict(self, X_future):
+    return self.engine.predict(X_future)
+
+  def update(self, X_vol_new, vol_new, vn_new, vj_new):
+    if self.usar_jusante:
+      self.X_feat_hist = X_vol_new
+    else:
+      X_sem_jusante = X_vol_new[[x for x in X_vol_new.columns if not x.startswith("Qout_")]]
+      self.X_feat_hist = X_sem_jusante
+    self.engine.update(self.X_feat_hist, vol_new, vn_new, vj_new)
