@@ -1,11 +1,15 @@
-ipykernel
-
 pandas
-dataprep
+# Visualização
+nbformat
+ipykernel
 ipython
 plotly
 seaborn
-
+jinja2
+# Para análise EDA - utilizar python 3.10
+# (Por causa do pacote Leveshtein que dá problema de importação no 3.12)
+#dataprep
+# Para treinamento
 statsmodels
 scikit-learn
 xgboost
