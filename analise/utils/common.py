@@ -706,6 +706,117 @@ def rodar_treino_vazoes_view(
     fig2.show()
 
 
+def rodar_treino_volume_kfold(
+  model_name,
+  model_base_volume,
+  model_vn_folds,
+  model_vj_folds,
+  splitter,
+  results_array,
+  dados,
+  plot = False
+):
+  folds_metrics = []
+
+  y_usado = dados["y_vol_rec"]  
+  for fold_idx, (train_idx, test_idx) in enumerate(splitter.split(dados["X_vol_rec"])):
+    X_vol_train_fold = dados["X_vol_rec"].iloc[train_idx]
+    y_vol_train_fold = dados["y_vol_rec"].iloc[train_idx]
+    X_vn_test_fold = dados["X_vn_rec"].iloc[test_idx]
+
+    model = ModeloPrevisaoVolume(
+      base_model=model_base_volume,
+      usar_jusante=True,
+      modelo_vazao_natural=model_vn_folds[fold_idx],
+      modelo_vazao_jusante=model_vj_folds[fold_idx]
+    )
+
+    model.fit(X_vol_train_fold, y_vol_train_fold)
+    X_vn_train_rec_drop = X_vol_train_fold.iloc[1:]
+    y_fit = model.predict(X_vn_train_rec_drop)
+    y_pred = model.predict(X_vn_test_fold)
+    
+    metrics = calculate_metrics(
+      y_usado.loc[y_fit.index],
+      y_usado.loc[y_pred.index],
+      y_fit.squeeze(),
+      y_pred.squeeze(),
+      label = model_name
+    )
+    folds_metrics.append(metrics)
+
+    if plot:
+      fig2 = plot_plotly(
+        dados["y_vol_rec"].loc[y_pred.index],
+        y_pred,
+        title="Forecast - Validação",
+        showlegend=True
+      )
+  df_folds = pd.concat(folds_metrics)
+  df_agg = df_folds.groupby(['Modelo', 'Dados']).agg(['mean', 'std', 'min', 'max'])
+  results_array.append(df_agg)
+  return df_agg
+
+
+def rodar_treino_volume_view(
+  model_base_volume,
+  model_vn,
+  model_vj,
+  dados,
+  VALIDATION_SIZE=90
+):
+  df_volume_series = dados['df_volume_series']
+  y_vn = dados['y_vn']
+  y_vj = dados['y_vj']
+  X_full_vn = dados['X_full_vn']
+  X_full_vj = dados['X_full_vj']
+  y_vol_rec = dados['y_vol_rec']
+  
+  y_vol = df_volume_series[df_volume_series.index >= "2018-01-01"].copy()
+  X_lags = make_lags(y_vol.squeeze(), 1)
+  X_Qin_leads = make_leads(y_vn.squeeze(), 1, name="Qin")
+  X_Qout_leads = make_leads(y_vj.squeeze(), 1, name="Qout")
+  X_full_vol = pd.concat([X_lags, X_Qin_leads, X_Qout_leads], axis=1).dropna()
+  y_vol, X_full_vol = y_vol.align(X_full_vol, join='inner', axis=0)
+  X_vol_train_rec, X_vol_valid_rec, y_vol_train_rec, y_vol_valid_rec = train_test_split(
+    X_full_vol, y_vol, test_size=VALIDATION_SIZE, shuffle=False)
+
+  X_vn_train_rec, X_vn_valid_rec, y_vn_train_rec, y_vn_valid_rec = train_test_split(
+    X_full_vn, y_vn, test_size=VALIDATION_SIZE, shuffle=False)
+  X_vj_train_rec, X_vj_valid_rec, y_vj_train_rec, y_vj_valid_rec = train_test_split(
+    X_full_vj, y_vj, test_size=VALIDATION_SIZE, shuffle=False)
+
+  model = ModeloPrevisaoVolume(
+    base_model=model_base_volume,
+    usar_jusante=True,
+    modelo_vazao_natural=model_vn,
+    modelo_vazao_jusante=model_vj
+  )
+
+  model.fit_vazao_natural(X_vn_train_rec, y_vn_train_rec)
+  model.fit_vazao_jusante(X_vj_train_rec, y_vj_train_rec)
+  model.calculate_lags(X_vn_valid_rec)
+  model.fit(X_vol_train_rec, y_vol_train_rec)
+
+  X_vn_train_rec_drop = X_vn_train_rec.iloc[1:]
+  y_fit = model.predict(X_vn_train_rec_drop)
+  y_pred = model.predict(X_vn_valid_rec)
+
+  fig1 = plot_plotly(
+    y_vol_rec.loc[y_fit.index],
+    y_fit,
+    title="Forecast - Treino",
+    showlegend=True
+  )
+
+  fig2 = plot_plotly(
+    y_vol_rec.loc[y_pred.index],
+    y_pred,
+    title="Forecast - Validação",
+    showlegend=True
+  )
+
+
 class AutoregressiveEngine:
   def __init__(self, modelo_volume):
     self.modelo = modelo_volume
