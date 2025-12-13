@@ -78,8 +78,8 @@ def calculate_metrics(y_train, y_valid, y_fit_train, y_fit_valid, label=None):
     'RMSE': [root_mean_squared_error(y_train, y_fit_train), root_mean_squared_error(y_valid, y_fit_valid)],
     'MSE': [mean_squared_error(y_train, y_fit_train), mean_squared_error(y_valid, y_fit_valid)],
     'MAE': [mean_absolute_error(y_train, y_fit_train), mean_absolute_error(y_valid, y_fit_valid)],
-    #'R2': [r2_score(y_train, y_fit_train), r2_score(y_valid, y_fit_valid)],
-    #'Wasserstein': get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid)
+    'R2': [r2_score(y_train, y_fit_train), r2_score(y_valid, y_fit_valid)],
+    'Wasserstein': get_wesserstein_error(y_train, y_valid, y_fit_train, y_fit_valid)
   }
 
   metrics_df = pd.DataFrame(metrics, index=['Treino', 'Validação'])

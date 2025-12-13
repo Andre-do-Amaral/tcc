@@ -4,6 +4,7 @@ import boto3
 import pandas as pd
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 import logging
 
 from utils.common import import_dataframe
@@ -27,7 +28,7 @@ logging.basicConfig(
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# --- CONFIGURAÇÕES GLOBAIS (Devem ser consistentes em todas as Lambdas) ---
+# MARK: CONFIGURAÇÕES GLOBAIS (Devem ser consistentes em todas as Lambdas) ---
 MLFLOW_URL = os.getenv("MLFLOW_URL")
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 S3_KEY = os.getenv("S3_KEY")
@@ -36,13 +37,29 @@ MODEL_NAME = "modelo_cantareira_autoreg"
 TARGET = 'Volume Útil Armazenado (%)'
 # --------------------------------------------------------------------------
 
-logger.info("--- INICIANDO TREINAMENTO COM AUTO-REGRESSÃO ---")
+# Utils:
+def safe_concat(df_base: pd.DataFrame, df_new: pd.DataFrame) -> pd.DataFrame:
+  if df_base is None or df_base.empty:
+    return df_new.copy()
+  return pd.concat([df_base, df_new], ignore_index=True)
 
+# MARK: MlFlow utils
 # 1. Configurar MLflow
 if not MLFLOW_URL.startswith("http"): MLFLOW_URL = f"http://{MLFLOW_URL}"
 mlflow.set_tracking_uri(MLFLOW_URL)
 mlflow.set_experiment("experimento_cantareira_autoreg")
-# 2. Dados
+MLFLOW_MODEL_NAME = "Modelo Volume"
+client = MlflowClient()
+
+def get_latest_version(model_name: str) -> str:
+  versions = client.search_model_versions(f"name='{model_name}'")
+  latest = max(versions, key=lambda v: int(v.version))
+  return latest.version
+
+
+# MARK: Preparar Dados 
+logger.info("--- PREPARANDO DADOS ---")
+# 1. Dados
 s3 = boto3.client('s3')
 try:
   os.makedirs("data", exist_ok=True)
@@ -84,6 +101,7 @@ df_vazao_jusante_series = (
 
 logger.info("--- DADOS CARREGADOS DO S3 ---")
 
+# MARK: Criar Features
 logger.info("--- CRIANDO FEATURES - VAZÃO NATURAL ---")
 
 y_vn = df_vazao_natural_series[df_vazao_natural_series.index >= "2018-01-01"].copy()
@@ -128,6 +146,7 @@ def get_train_test_split_recursive():
 y_vol_rec, X_full_vol, X_vol_train_rec, X_vol_valid_rec, y_vol_train_rec, y_vol_valid_rec = get_train_test_split_recursive()
 
 
+# MARK: Verificar retreino
 logger.info("--- VERIFICAR NECESSIDADE DE RETREINO DO MODELO ---")
 
 KEY_RESULTADO = "resultado/previsoes.csv"
@@ -154,7 +173,6 @@ def load_avaliacao_from_s3():
     logger.error(f"Erro ao carregar avaliacao.csv")
     raise
 
-## s3
 rodar_retreino = False
 try:
   df_previsoes = load_previsoes_from_s3()
@@ -164,7 +182,7 @@ try:
   #df_volume
   #Data > ultimo treino
   
-  #rodar_retreino = True
+  rodar_retreino = True
 except Exception as e:
   rodar_retreino = True
 
@@ -177,7 +195,7 @@ except Exception as e:
   s3.upload_file(LOCAL_PATH_AVALIACAO, S3_BUCKET_NAME, KEY_AVALIACAO)
 
 
-
+# MARK: Treinando modelo
 logger.info("--- TREINANDO MODELO ---")
 if(rodar_retreino):
   with mlflow.start_run() as run:
@@ -205,23 +223,28 @@ if(rodar_retreino):
       mlflow.log_metric(metric_name, float(value))
           
     # Log do Modelo (Artifact)
-    mlflow.sklearn.log_model(model, "model", registered_model_name="Modelo Volume")
+    mlflow.sklearn.log_model(
+      model,
+      name="model",
+      registered_model_name=MLFLOW_MODEL_NAME
+    )
           
     run_id = run.info.run_id
     logger.info(f"Novo modelo treinado. Run ID: {run_id}. Score MAE: {val_metrics['MAE']}")
 
     # verificar se promove modelo
-    # ...
+    latest_version = get_latest_version(MLFLOW_MODEL_NAME)
+    client.transition_model_version_stage(
+      name=MLFLOW_MODEL_NAME,
+      version=latest_version,
+      stage="Production"
+    )
 
 
-
-
+# MARK: Prever!!
 logger.info("--- PREVISÃO PARA FUTURO ---")
-
-
-#if(not rodar_retreino):
-  # pegar modelo no mlflow.
-
+if(not rodar_retreino):
+  model = mlflow.sklearn.load_model(f"models:/{MLFLOW_MODEL_NAME}/Production")
 
 # Update dos estados internos
 model.update(X_full_vol, y_vol_rec, y_vn, y_vj)
@@ -235,12 +258,11 @@ X_future_vn = dp.out_of_sample(steps=90)
 # Previsão
 model.calculate_lags(X_future_vn)
 y_pred = model.predict(X_future_vn)
+logger.info("=============")
 logger.info(y_pred)
 
-print(y_pred.to_frame())
 
-
-
+# MARK: Salvar Previsão
 logger.info("--- SALVAR PREVISÃO NO S3 ---")
 from datetime import date, datetime
 
@@ -261,10 +283,10 @@ except Exception as e:
   colunas = ["modelo", "inicio", "alterou_modelo"] + coluna_previsoes
   df_previsoes = pd.DataFrame(columns=colunas)
 
-pd.concat([
+df_previsoes = safe_concat(
   df_previsoes,
   linha_inserir
-])
+)
 KEY_PREVISOES = "resultado/previsoes.csv"
 LOCAL_PATH_PREVISOES = f"data/{KEY_PREVISOES}"
 os.makedirs("data/resultado", exist_ok=True)
