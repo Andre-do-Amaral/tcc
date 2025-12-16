@@ -14,6 +14,16 @@ from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
+import numpy as np
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+import itertools
+import joblib
+
 import sys
 
 logging.basicConfig(
@@ -153,8 +163,11 @@ os.makedirs("data/resultado", exist_ok=True)
 
 def load_previsoes_from_s3():
   try:
+    logger.info(f"Baixando {KEY_PREVISOES} do S3...")
     s3.download_file(S3_BUCKET_NAME, KEY_PREVISOES, LOCAL_PATH_PREVISOES)
     df_previsoes = pd.read_csv(LOCAL_PATH_PREVISOES, sep=',')
+    if not df_previsoes.empty:
+      df_previsoes["inicio"] = pd.to_datetime(df_previsoes["inicio"]).dt.date
     return df_previsoes
   except:
     logger.error(f"Erro ao carregar previsoes.csv")
@@ -162,18 +175,23 @@ def load_previsoes_from_s3():
 
 def load_avaliacao_from_s3():
   try:
+    logger.info(f"Baixando {KEY_AVALIACAO} do S3...")
     s3.download_file(S3_BUCKET_NAME, KEY_AVALIACAO, LOCAL_PATH_AVALIACAO)
     df_avaliacao = pd.read_csv(LOCAL_PATH_AVALIACAO, sep=',')
+    if not df_avaliacao.empty:
+      df_avaliacao["inicio"] = pd.to_datetime(df_avaliacao["inicio"]).dt.date
     return df_avaliacao
   except:
     logger.error(f"Erro ao carregar avaliacao.csv")
     raise
 
 def save_previsoes_s3(df_previsoes: pd.DataFrame):
+  logger.info(f"Salvando previsoes.csv no S3...")
   df_previsoes.to_csv(LOCAL_PATH_PREVISOES, index=False)
   s3.upload_file(LOCAL_PATH_PREVISOES, S3_BUCKET_NAME, KEY_PREVISOES)
 
 def save_avaliacao_s3(df_avaliacao: pd.DataFrame):
+  logger.info(f"Salvando avaliacao.csv no S3...")
   df_avaliacao.to_csv(LOCAL_PATH_AVALIACAO, index=False)
   s3.upload_file(LOCAL_PATH_AVALIACAO, S3_BUCKET_NAME, KEY_AVALIACAO)
 
@@ -186,7 +204,7 @@ try:
   df_avaliacao = load_avaliacao_from_s3()
 except Exception as e:
   rodar_retreino = True
-  colunas_MAEs = [f"MAE{7*(i+1)}"for i in range(15)]
+  colunas_MAEs = [f"MAE{7*(i+1)}"for i in range(13)]
   colunas = ["modelo", "inicio"] + colunas_MAEs
   df_avaliacao = pd.DataFrame(columns=colunas)
 
@@ -194,10 +212,10 @@ except Exception as e:
 
 
 # Atualizar avaliações MAE
-HORIZONTES = [7*(i+1) for i in range(15)]
+HORIZONTES = [7*(i+1) for i in range(13)]
 df_mae_pendente = df_avaliacao[df_avaliacao.isna().any(axis=1)]
 for idx, row in df_mae_pendente.iterrows():
-  inicio = pd.to_datetime(row["inicio"])
+  inicio = row["inicio"]
   prev = df_previsoes[df_previsoes["inicio"] == inicio]
   if prev.empty:
     continue
@@ -216,7 +234,7 @@ for idx, row in df_mae_pendente.iterrows():
     # Verificar se as datas a avaliar existem no df de valores reais.
     if not datas_h.isin(df.index).all():
       continue
-    y_true = df.loc[datas_h, "y"].values
+    y_true = df.loc[datas_h, nome_coluna_volume].values
     y_pred = prev[[f"y_{i}" for i in range(1, h + 1)]].values
     df_avaliacao.at[idx, col_mae] = mean_absolute_error(y_true, y_pred)
 save_avaliacao_s3(df_avaliacao)
@@ -227,7 +245,6 @@ else:
   # Verificar necessidade de retreino:
   modelo_mais_recente = (
     df_avaliacao
-    .sort_values("inicio")
     .iloc[-1]["modelo"]
   )
   # Isolar só modelo mais recente
@@ -238,27 +255,10 @@ else:
     rodar_retreino = False
   else:
     LIMIAR_MAE = 10.0
-    mae_atual = (
-      df_avaliacao_modelo_atual
-        .sort_values("inicio")
-        .iloc[-1][cols_mae]
-        .dropna()
-        .iloc[-1]
-    )
-    rodar_retreino = mae_atual > LIMIAR_MAE
+    rodar_retreino = (df_avaliacao_modelo_atual[cols_mae] > LIMIAR_MAE).sum().sum() > 0
 #rodar_retreino = True
 
 # MARK: configurações - modelo
-import numpy as np
-from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import mean_absolute_error, mean_squared_error
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import StandardScaler
-import itertools
-import joblib
-
 # --- CONFIGURAÇÃO GLOBAL ---
 VALIDATION_SIZE = 90
 N_SPLITS = 5
@@ -523,30 +523,30 @@ if(rodar_retreino):
     # Modelo Vazão (Fixo na sua melhor configuração)
     'model_flow_cycle': [
       KNeighborsRegressor(n_neighbors=5),
-      #RandomForestRegressor(max_depth=3),
-      #RandomForestRegressor(max_depth=5)
+      RandomForestRegressor(max_depth=3),
+      RandomForestRegressor(max_depth=5)
     ],
     'cycle_logic': [
       'damping_specific',
-      #None
+      None
     ],
     # Modelo Volume (Variações)
     'model_volume': [
       LinearRegression(),
-      #Ridge(alpha=1.0)
+      Ridge(alpha=1.0)
     ],
     'use_diff1': [
       True,
-      #False
+      False
     ],
     'use_diff2': [
       True,
-      #False
+      False
     ],
     'use_vol_clim': [True, False],
     # NOVA FEATURE PARA TESTE
     'vol_hybrid_trend': [
-      #True,
+      True,
       False
     ] # Testa se incluir Fourier direto no volume ajuda
   }
@@ -660,36 +660,38 @@ model_version = client.get_model_version_by_alias(
   alias="production"
 )
 
-# Histórico conhecido
-dados_prev = df.iloc[:-90, :]
+logger.info("Treinando modelos com o histórico completo...")
+# O método _train_flow retorna o resíduo necessário para iniciar a recursão
+treino = df.iloc[0:-90,:]
+last_resid_flow = model._train_flow(treino)
+model._train_volume(treino)
 
-# Warm-up de estado (SEM FIT)
-last_resid_flow = model.init_flow_state(dados_prev)
-buffer_vol = model.init_volume_buffer(dados_prev)
-
-# Horizonte
+# 3. Definir o Horizonte de Previsão
 DAYS_AHEAD = 90
-last_date = dados_prev.index[-1]
-future_dates = pd.date_range(
-  start=last_date + pd.Timedelta(days=1),
-  periods=DAYS_AHEAD,
-  freq='D'
-)
+last_date = treino.index[-1]
+future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=DAYS_AHEAD, freq='D')
 
+# Criamos um DataFrame vazio apenas com o índice (o modelo usa o índice para climatologia/fourier)
 df_future = pd.DataFrame(index=future_dates)
 
-# Predict puro
-forecast_values = model.predict(
-  df_future,
-  buffer_vol,
-  last_resid_flow
-)
+# 4. Preparar os Buffers Iniciais (O ponto de partida)
+# O modelo precisa dos últimos 3 volumes reais para calcular os lags e diffs iniciais
+buffer_vol_inicial = treino[COL_VOL].tail(3).values
 
+logger.info(f"Gerando previsão para os próximos {DAYS_AHEAD} dias...")
+forecast_values = model.predict(df_future, buffer_vol_inicial, last_resid_flow)
+
+# =============================================================================
+# 5. RESULTADOS E VISUALIZAÇÃO
+# =============================================================================
+
+# Criar DataFrame com o resultado
 df_resultado = pd.DataFrame(
-  forecast_values,
+  data=forecast_values,
   index=future_dates,
   columns=['Previsao_Volume']
 )
+
 
 logger.info("=============")
 logger.info(df_resultado)
@@ -723,8 +725,6 @@ except Exception as e:
   df_previsoes = pd.DataFrame(columns=colunas)
 
 # Adiciona nova linha se data_previsao não existir
-if not df_previsoes.empty:
-  df_previsoes["inicio"] = pd.to_datetime(df_previsoes["inicio"]).dt.date
 if data_previsao not in df_previsoes["inicio"].values:
   # Salvar previsão
   df_previsoes = safe_concat(
