@@ -9,15 +9,7 @@
         "Cluster": "arn:aws:ecs:us-east-1:542660891168:cluster/tcc-grupo-10-cluster",
         "Service": "arn:aws:ecs:us-east-1:542660891168:service/tcc-grupo-10-cluster/tcc-grupo10-mlflow-service-uppp",
         "DesiredCount": 1,
-        "NetworkConfiguration": {
-          "AwsvpcConfiguration": {
-            "Subnets": [
-              "subnet-00ee6c7313660c248",
-              "subnet-0759dbcc8f29613ac"
-            ],
-            "AssignPublicIp": "ENABLED"
-          }
-        }
+        "ForceNewDeployment": true
       },
       "ResultPath": "$.mlflowTask",
       "Next": "WaitForMlflowBoot"
@@ -25,7 +17,7 @@
     "WaitForMlflowBoot": {
       "Comment": "Espera 60s para o container do MLflow iniciar o servidor web",
       "Type": "Wait",
-      "Seconds": 5,
+      "Seconds": 90,
       "Next": "ExtractData"
     },
     "ExtractData": {
@@ -54,6 +46,12 @@
           }
         }
       },
+      "Next": "WaitForResultEvaluation"
+    },
+    "WaitForResultEvaluation": {
+      "Comment": "Espera 10 minutos para analisar resultado",
+      "Type": "Wait",
+      "Seconds": 600,
       "Next": "StopMlflow"
     },
     "StopMlflow": {
@@ -62,16 +60,7 @@
       "Parameters": {
         "Cluster": "arn:aws:ecs:us-east-1:542660891168:cluster/tcc-grupo-10-cluster",
         "Service": "arn:aws:ecs:us-east-1:542660891168:service/tcc-grupo-10-cluster/tcc-grupo10-mlflow-service-uppp",
-        "DesiredCount": 0,
-        "NetworkConfiguration": {
-          "AwsvpcConfiguration": {
-            "Subnets": [
-              "subnet-00ee6c7313660c248",
-              "subnet-0759dbcc8f29613ac"
-            ],
-            "AssignPublicIp": "ENABLED"
-          }
-        }
+        "DesiredCount": 0
       },
       "End": true
     }

@@ -17,13 +17,14 @@ from sklearn.linear_model import LinearRegression
 import numpy as np
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.base import clone
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import StandardScaler
 import itertools
 import joblib
-
+import json
 import sys
 
 logging.basicConfig(
@@ -254,7 +255,7 @@ else:
   if not tem_algum_mae:
     rodar_retreino = False
   else:
-    LIMIAR_MAE = 10.0
+    LIMIAR_MAE = 5.0
     rodar_retreino = (df_avaliacao_modelo_atual[cols_mae] > LIMIAR_MAE).sum().sum() > 0
 #rodar_retreino = True
 
@@ -264,8 +265,8 @@ VALIDATION_SIZE = 90
 N_SPLITS = 5
 COL_VOL = "Volume Útil Armazenado (%)"
 COL_VN = "Vazão Natural (m³/s)"
+COL_VJ = "Vazão Jusante (m³/s)"
 LAGS_CICLO = 2
-LAGS_VOLUME = 1
 
 # =============================================================================
 # 1. FUNÇÕES AUXILIARES
@@ -316,201 +317,155 @@ class ReservoirForecaster:
     self.history = {}
     self.vol_features_ = []
 
-  def _train_flow(self, df_train):
-    y = df_train[COL_VN]
+  def _train_flow_model(self, df_train, col_name, prefix):
+    """Treina modelo de vazão (Natural ou Jusante) usando Sazonalidade + ML no Resíduo."""
+    y = df_train[col_name]
 
-    # 1. Climatologia (Base)
-    clim_curve = calcular_climatologia_robusta(df_train, COL_VN)
-    self.history['flow_clim'] = clim_curve
+    # 1. Climatologia
+    clim_curve = calcular_climatologia_robusta(df_train, col_name)
+    self.history[f'{prefix}_clim'] = clim_curve
 
-    # 2. Estratégia: Extração de Resíduo via Fourier
+    # 2. Resíduo via Fourier (Tendência Matemática)
     X_math = criar_feat_fourier(df_train.index)
     model_math = LinearRegression()
     model_math.fit(X_math, y)
-    ### Adicionei para evitar treinar de novo no predict
-    self.models['flow_math'] = model_math
+    self.models[f'{prefix}_math'] = model_math
 
-    y_math_clean = pd.Series(model_math.predict(X_math), index=y.index)
-    residuo = y - y_math_clean
+    residuo = y - model_math.predict(X_math)
 
-    # 3. Treina ML no Resíduo (Ciclo)
+    # 3. ML no Ciclo (Resíduo)
     X_lags = criar_lags(residuo, LAGS_CICLO).dropna()
     y_target = residuo.loc[X_lags.index]
 
-    model_cycle = self.cfg['model_flow_cycle']
+    model_cycle = clone(self.cfg['model_flow_cycle'])
     model_cycle.fit(X_lags, y_target)
-    self.models['flow_cycle'] = model_cycle
+    self.models[f'{prefix}_cycle'] = model_cycle
 
     return residuo.tail(LAGS_CICLO).values
 
-  def _train_volume(self, df_train):
+  def fit(self, df_train):
+    """Treina todos os submodelos (Vazões e Volume)."""
+    # Treina modelos de vazão (sempre treinamos para poder prever o futuro recursivamente)
+    self.last_res_vn = self._train_flow_model(df_train, COL_VN, 'vn')
+    self.last_res_vj = self._train_flow_model(df_train, COL_VJ, 'vj')
+
+    # Prepara features do Volume
     y = df_train[COL_VOL]
     X = pd.DataFrame(index=df_train.index)
-
-    # --- Feature Engineering Dinâmica ---
     X['vol_lag1'] = df_train[COL_VOL].shift(1)
 
     if self.cfg.get('use_diff1', True):
-      X['vol_diff'] = df_train[COL_VOL].shift(1) - df_train[COL_VOL].shift(2)
+      X['vol_diff1'] = df_train[COL_VOL].shift(1) - df_train[COL_VOL].shift(2)
 
-    if self.cfg.get('use_diff2', False):
+    if self.cfg.get('use_diff2', True):
       X['vol_diff2'] = (df_train[COL_VOL].shift(1) - df_train[COL_VOL].shift(2)) - \
                        (df_train[COL_VOL].shift(2) - df_train[COL_VOL].shift(3))
 
-    # Input Exógeno: Vazão
-    X['vazao_input'] = df_train[COL_VN]
+    # Ativação de Exógenas via Config
+    if self.cfg.get('use_vn', True):
+      X['vn_input'] = df_train[COL_VN]
+    if self.cfg.get('use_vj', True):
+      X['vj_input'] = df_train[COL_VJ]
 
-    # Input Exógeno: Climatologia Volume
-    if self.cfg.get('use_vol_clim', False):
-      clim_vol = calcular_climatologia_robusta(df_train, COL_VOL)
-      self.history['vol_clim'] = clim_vol
-      X['vol_clim'] = get_clim_feature_array(df_train.index, clim_vol)
+    if self.cfg.get('use_vol_clim', True):
+      self.history['vol_clim'] = calcular_climatologia_robusta(df_train, COL_VOL)
+      X['vol_clim'] = get_clim_feature_array(df_train.index, self.history['vol_clim'])
 
-    # Input Exógeno: Tendência Híbrida (Fourier no Volume) -> IMPLEMENTADO AQUI
-    if self.cfg.get('vol_hybrid_trend', False):
-      # Cria Fourier para o índice de treino
+    if self.cfg.get('vol_feat_fourier', True):
       X_fourier = criar_feat_fourier(df_train.index)
-      # Concatena (Pandas alinha pelo índice)
       X = pd.concat([X, X_fourier], axis=1)
 
     X_full = X.dropna()
-    y_train = y.loc[X_full.index]
-
-    # Salva features para garantir ordem no predict
     self.vol_features_ = X_full.columns.tolist()
 
-    # Scaling
+    # Scaling e Treino do Volume
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X_full)
     self.scalers['vol'] = scaler
 
-    # Treino
-    model = self.cfg['model_volume']
-    model.fit(X_scaled, y_train)
-    self.models['volume'] = model
+    model_vol = self.cfg['model_volume']
+    model_vol.fit(X_scaled, y.loc[X_full.index])
+    self.models['volume'] = model_vol
 
-  def predict(self, df_test, buffer_vol, last_resid_flow):
+    # Salva estado para o forecast futuro
+    self.last_vol_data = df_train[COL_VOL].tail(3).values.tolist()
+    self.last_date = df_train.index[-1]
+
+  def _predict_loop(self, dates, start_vol_buffer, start_res_vn, start_res_vj):
+    """Loop recursivo para prever N dias."""
     preds_vol = []
+    curr_vol = list(start_vol_buffer)
+    curr_res_vn = list(start_res_vn)
+    curr_res_vj = list(start_res_vj)
 
-    curr_buffer_vol = list(buffer_vol)
-    curr_resid_flow = list(last_resid_flow)
+    X_trend = None
+    if self.cfg.get('vol_feat_fourier', True):
+      X_trend = criar_feat_fourier(pd.DatetimeIndex(dates))
 
-    # --- PREPARAÇÃO TREND HÍBRIDA (SE NECESSÁRIO) ---
-    # Gera o Fourier para todo o período de teste de uma vez (mais eficiente)
-    X_trend_test = None
-    if self.cfg.get('vol_hybrid_trend', False):
-      X_trend_test = criar_feat_fourier(df_test.index)
+    for date in dates:
+      # --- 1. PREVER VAZÕES (Recursivo) ---
+      def predict_single_flow(prefix, res_buffer):
+        base = get_clim_feature_array(pd.DatetimeIndex([date]), self.history[f'{prefix}_clim'])[0]
+        lags = np.array(res_buffer[-LAGS_CICLO:][::-1])
+        res_pred = self.models[f'{prefix}_cycle'].predict(pd.DataFrame([lags], columns=[f'lag_{k}' for k in range(1, LAGS_CICLO+1)]))[0]
 
-    for i in range(len(df_test)):
-      date = df_test.index[i]
+        # Lógica de Damping
+        if self.cfg.get('cycle_logic') == 'damping_specific' and res_pred > 0:
+            res_pred *= 0.2 if (res_pred - res_buffer[-1] > 0) else 0.8
 
-      # --- 1. VAZÃO (Híbrida: Base Clim + Ciclo ML) ---
-      val_base_clim = get_clim_feature_array(pd.DatetimeIndex([date]), self.history['flow_clim'])[0]
+        return max(0, base + res_pred), res_pred
 
-      lags_cycle = np.array(curr_resid_flow[-LAGS_CICLO:][::-1])
-      cycle_pred = self.models['flow_cycle'].predict(pd.DataFrame([lags_cycle], columns=[f'lag_{k}' for k in range(1, LAGS_CICLO+1)]))[0]
+      vn_val, vn_res = predict_single_flow('vn', curr_res_vn)
+      vj_val, vj_res = predict_single_flow('vj', curr_res_vj)
+      curr_res_vn.append(vn_res)
+      curr_res_vj.append(vj_res)
 
-      # Damping Logic
-      if self.cfg.get('cycle_logic') == 'damping_specific':
-        if cycle_pred > 0:
-          last_r = curr_resid_flow[-1]
-          if cycle_pred - last_r > 0:
-            cycle_pred *= 0.2
-          else:
-            cycle_pred *= 0.8
-
-      vazao_final = max(0, val_base_clim + cycle_pred)
-      curr_resid_flow.append(cycle_pred)
-
-      # --- 2. VOLUME ---
-      vol_t1 = curr_buffer_vol[-1]
-      vol_t2 = curr_buffer_vol[-2]
-      vol_t3 = curr_buffer_vol[-3]
-
-      # Monta features base (Dicionário não garante ordem, DF garante)
-      feat_dict = {'vol_lag1': vol_t1}
-
-      if self.cfg.get('use_diff1', True):
-        feat_dict['vol_diff'] = vol_t1 - vol_t2
-
-      if self.cfg.get('use_diff2', False):
-        feat_dict['vol_diff2'] = (vol_t1 - vol_t2) - (vol_t2 - vol_t3)
-
-      feat_dict['vazao_input'] = vazao_final
-
-      if self.cfg.get('use_vol_clim', False):
+      # --- 2. PREVER VOLUME ---
+      feat_dict = {'vol_lag1': curr_vol[-1]}
+      if 'vol_diff1' in self.vol_features_: feat_dict['vol_diff1'] = curr_vol[-1] - curr_vol[-2]
+      if 'vol_diff2' in self.vol_features_: feat_dict['vol_diff2'] = (curr_vol[-1] - curr_vol[-2]) - (curr_vol[-2] - curr_vol[-3])
+      if 'vn_input' in self.vol_features_: feat_dict['vn_input'] = vn_val
+      if 'vj_input' in self.vol_features_: feat_dict['vj_input'] = vj_val
+      if 'vol_clim' in self.vol_features_:
         feat_dict['vol_clim'] = get_clim_feature_array(pd.DatetimeIndex([date]), self.history['vol_clim'])[0]
 
-      # Cria DataFrame parcial
-      input_vol = pd.DataFrame([feat_dict])
+      if X_trend is not None:
+        row_trend = X_trend.loc[[date]].reset_index(drop=True)
+        input_df = pd.concat([pd.DataFrame([feat_dict]), row_trend], axis=1)
+      else:
+        input_df = pd.DataFrame([feat_dict])
+      input_df = input_df[self.vol_features_]
+      input_scaled = self.scalers['vol'].transform(input_df)
+      pred_v = self.models['volume'].predict(input_scaled)[0]
 
-      # Adiciona Trend Híbrida se necessário
-      if self.cfg.get('vol_hybrid_trend', False):
-        # Pega a linha correspondente do Fourier pré-calculado
-        # Reset index para concatenar lateralmente sem problemas de índice (input_vol tem index 0)
-        row_trend = X_trend_test.iloc[[i]].reset_index(drop=True)
-        input_vol = pd.concat([input_vol, row_trend], axis=1)
-
-      # REORDENAÇÃO CRÍTICA: Garante que as colunas estão na mesma ordem do fit
-      # Isso corrige qualquer erro de concatenação ou ordem de dicionário
-      input_vol = input_vol[self.vol_features_]
-
-      # Scaling
-      input_vol_scaled = self.scalers['vol'].transform(input_vol)
-
-      # Predict
-      pred_vol = self.models['volume'].predict(input_vol_scaled)[0]
-      preds_vol.append(pred_vol)
-
-      curr_buffer_vol.append(pred_vol)
-      curr_buffer_vol.pop(0)
+      preds_vol.append(pred_v)
+      curr_vol.append(pred_v)
+      curr_vol.pop(0)
 
     return preds_vol
 
+  def forecast(self, days):
+    """Faz a previsão para o futuro além dos dados conhecidos."""
+    future_dates = pd.date_range(start=self.last_date + pd.Timedelta(days=1), periods=days)
+    return self._predict_loop(future_dates, self.last_vol_data, self.last_res_vn, self.last_res_vj)
+
   def evaluate(self, df):
+    """Validação cruzada temporal."""
     tscv = TimeSeriesSplit(n_splits=N_SPLITS, test_size=VALIDATION_SIZE)
     rmse_scores = []
     mae_scores = []
-
-    for fold, (train_idx, test_idx) in enumerate(tscv.split(df)):
+    for train_idx, test_idx in tscv.split(df):
       df_train, df_test = df.iloc[train_idx], df.iloc[test_idx]
 
-      last_resid_flow = self._train_flow(df_train)
-      self._train_volume(df_train)
-
+      self.fit(df_train)
       buffer_vol = df_train[COL_VOL].tail(3).values
-      preds_vol = self.predict(df_test, buffer_vol, last_resid_flow)
+      preds = self._predict_loop(df_test.index, buffer_vol, self.last_res_vn, self.last_res_vj)
 
-      rmse = np.sqrt(mean_squared_error(df_test[COL_VOL], preds_vol))
+      rmse = np.sqrt(mean_squared_error(df_test[COL_VOL], preds))
       rmse_scores.append(rmse)
-      mae = mean_absolute_error(df_test[COL_VOL], preds_vol)
+      mae = mean_absolute_error(df_test[COL_VOL], preds)
       mae_scores.append(mae)
-
     return np.mean(rmse_scores), np.mean(mae_scores)
-
-  ### Coloquei aqui para não treinar modelo ao prever.
-  def init_flow_state(self, df_hist):
-    """
-    Reconstrói o estado do resíduo da vazão
-    SEM treinar nenhum modelo
-    """
-    y = df_hist[COL_VN]
-
-    # Base climatológica (já treinada e salva)
-    X_math = criar_feat_fourier(df_hist.index)
-
-    # Usa o modelo linear já treinado
-    y_math = pd.Series(
-      self.models['flow_math'].predict(X_math),
-      index=y.index
-    )
-
-    residuo = y - y_math
-    return residuo.tail(LAGS_CICLO).values
-
-  def init_volume_buffer(self, df_hist):
-    return df_hist[COL_VOL].tail(3).values
-
 
 # MARK: Treinando modelo
 logger.info("--- TREINANDO MODELO ---")
@@ -520,6 +475,11 @@ if(rodar_retreino):
   # =============================================================================
 
   param_grid = {
+    'use_vn': [True],
+    'use_vj': [
+      False,
+      True
+    ],
     # Modelo Vazão (Fixo na sua melhor configuração)
     'model_flow_cycle': [
       KNeighborsRegressor(n_neighbors=5),
@@ -544,8 +504,7 @@ if(rodar_retreino):
       False
     ],
     'use_vol_clim': [True, False],
-    # NOVA FEATURE PARA TESTE
-    'vol_hybrid_trend': [
+    'vol_feat_fourier': [
       True,
       False
     ] # Testa se incluir Fourier direto no volume ajuda
@@ -568,11 +527,15 @@ if(rodar_retreino):
       with mlflow.start_run(run_name=f"iter_{i}", nested=True) as child_run:
         try:
           # 1. Logar os parâmetros DESTA iteração antes de rodar
-          mlflow.log_param("model_volume", str(cfg_run['model_volume']))
-          mlflow.log_param("model_flow", str(cfg_run['model_flow_cycle']))
+          mlflow.log_param("use_vn", cfg_run['use_vn'])
+          mlflow.log_param("use_vj", cfg_run['use_vj'])
+          mlflow.log_param("model_flow_cycle", str(cfg_run['model_flow_cycle']))
           mlflow.log_param("cycle_logic", str(cfg_run['cycle_logic']))
+          mlflow.log_param("model_volume", str(cfg_run['model_volume']))
+          mlflow.log_param("use_diff1", cfg_run['use_diff1'])
           mlflow.log_param("use_diff2", cfg_run['use_diff2'])
-          mlflow.log_param("vol_hybrid_trend", cfg_run['vol_hybrid_trend'])
+          mlflow.log_param("use_vol_clim", cfg_run['use_vol_clim'])
+          mlflow.log_param("vol_feat_fourier", cfg_run['vol_feat_fourier'])
 
           # 2. Executar o modelo
           forecaster = ReservoirForecaster(cfg_run)
@@ -586,12 +549,12 @@ if(rodar_retreino):
           run_name_dynamic = f"RMSE_{rmse:.4f}MAE{mae:.4f}Iter{i}"
           mlflow.set_tag("mlflow.runName", run_name_dynamic)
 
-          # 5. Logar o Modelo (Artifact)
           results.append({
             "run_id": child_run.info.run_id,
             "rmse": rmse,
             "mae": mae,
             "forecaster_obj": forecaster,
+            "config": cfg_run,
             "iter": i
           })
 
@@ -611,6 +574,7 @@ if(rodar_retreino):
     for rank, item in enumerate(top_5):
       run_id = item['run_id']
       forecaster = item['forecaster_obj']
+      config_cfg = item['config']
       rmse = item['rmse']
 
       logger.info(f"Salvando Rank #{rank+1} (RMSE: {rmse:.4f}) na run {run_id}...")
@@ -660,32 +624,26 @@ model_version = client.get_model_version_by_alias(
   alias="production"
 )
 
+config_cfg = model.cfg
+config_cfg['model_volume'] = clone(config_cfg['model_volume'])
+config_cfg['model_flow_cycle'] = clone(config_cfg['model_flow_cycle'])
+
 logger.info("Treinando modelos com o histórico completo...")
-# O método _train_flow retorna o resíduo necessário para iniciar a recursão
-treino = df.iloc[0:-90,:]
-last_resid_flow = model._train_flow(treino)
-model._train_volume(treino)
-
-# 3. Definir o Horizonte de Previsão
-DAYS_AHEAD = 90
-last_date = treino.index[-1]
-future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=DAYS_AHEAD, freq='D')
-
-# Criamos um DataFrame vazio apenas com o índice (o modelo usa o índice para climatologia/fourier)
-df_future = pd.DataFrame(index=future_dates)
-
-# 4. Preparar os Buffers Iniciais (O ponto de partida)
-# O modelo precisa dos últimos 3 volumes reais para calcular os lags e diffs iniciais
-buffer_vol_inicial = treino[COL_VOL].tail(3).values
-
-logger.info(f"Gerando previsão para os próximos {DAYS_AHEAD} dias...")
-forecast_values = model.predict(df_future, buffer_vol_inicial, last_resid_flow)
+final_model = ReservoirForecaster(config_cfg)
+final_model.fit(df)
+# horizonte:
+horizonte = 90
+logger.info(f"Gerando previsão para os próximos {horizonte} dias...")
+forecast_values = final_model.forecast(horizonte)
 
 # =============================================================================
 # 5. RESULTADOS E VISUALIZAÇÃO
 # =============================================================================
 
 # Criar DataFrame com o resultado
+last_date = df.index[-1]
+future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1), periods=horizonte)
+
 df_resultado = pd.DataFrame(
   data=forecast_values,
   index=future_dates,
