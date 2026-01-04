@@ -43,6 +43,109 @@ Dentro do cenário de dados hidrológicos, \textcite{Morettin_Toloi} explicam qu
 
 Teoricamente, para que a decomposição da série temporal seja considerada completa e bem-sucedida, é esperado que o resíduo resultante se comporte como um ruído branco. Isso significa que a série de ruído deve ser completamente aleatória, sem correlação com seus valores passados, sem padrões explicáveis e com média se aproximando de zero, \cite{Hyndman_Athanassopoulos}. Se o ruído ainda apresentar padrões visualizáveis como ondas ou tendências, isso pode indicar que as componentes sazonais, cíclicas e de tendência não foram extraídas corretamente, restando ainda informação estrutural escondida. 
 
+\section{Modelagens mais comuns de Séries Temporais}
+
+A modelagem de séries temporais pode ser feita de diversas formas, as mais comuns serão explicitadas e explicadas nos tópicos a seguir. 
+
+\subsection{Modelagem por Decomposição}
+
+Esta técnica baseia-se na premissa de que uma série complexa pode ser decomposta em componentes básicos, são eles tendência, sazonalidade e ciclo. Cada um destes componentes, quando isolados, apresentam comportamentos mais previsíveis e tratáveis do que a série original bruta (MORETTIN; TOLOI, 2018 ------ https://toaz.info/doc-view-3). 
+
+Matematicamente, a abordagem adotada neste trabalho utiliza o modelo aditivo ou de Superposição de Efeitos, em que a variável alvo Y(t) (neste caso, o volume útil do reservatório) é expressa como a soma de suas componentes e um termo de erro: 
+
+\begin{equation}
+Y(t) = T(t) + S(t) + C(t, ex) + e(t)
+\end{equation}
+
+Onde: 
+
+\begin{itemize}
+\item $T(t)$ representa a Tendência; 
+\item $S(t)$ representa a Sazonalidade; 
+\item $C(t, ex)$ representa o Ciclo, como dependente do tempo e de variáveis exógenas; 
+\item $e(t)$ representa o Ruído Branco.
+\end{itemize}
+
+A principal vantagem da superposição de efeitos reside na especialização algorítmica. Modelos distintos possuem capacidades diferentes: algoritmos lineares (como Regressão Linear, Ridge ou Lasso) são eficazes na captura de tendências e sazonalidades, apresentando boa capacidade de extrapolação, uma característica crucial para prever valores que superam os máximos históricos de uma série. 
+
+Em contrapartida, modelos baseados em árvores de decisão (como Random Forest ou XGBoost) ou de vizinhos mais próximos (k-nearest-neighbors - KNN), são robustos para capturar relações não-lineares e padrões complexos no ciclo, porém apresentam limitações para lidar com tendências, uma vez que não conseguem extrapolar valores fora do intervalo observado no treinamento. 
+
+Dessa forma, a estratégia de modelagem proposta consiste na construção de um sistema híbrido: 
+
+\begin{itemize}
+\item \textbf{Modelo de Base Linear}: Responsável por modelar a tendência e a sazonalidade, garantindo a estabilidade estrutural da previsão. 
+\item \textbf{Modelo de Ciclo}: Um modelo baseado em árvores, técnicas de boosting ou de vizinhos próximos, treinado sobre os resíduos do primeiro modelo, com o objetivo de capturar as oscilações não lineares e influências de variáveis exógenas (vazões natural e jusante).
+\end{itemize}
+
+A previsão final é, portanto, a combinação linear dos outputs de ambos os modelos, permitindo maior explicabilidade, no nosso cenário um requisito fundamental para a tomada de decisão na gestão de recursos hídricos. Este modelo é de fácil interpretação pois é possível identificar quanto cada "força" (tendência e sazonalidade ou ciclo) está contribuindo para o cenário previsto. Além disso, essa técnica permite construir um modelo robusto e que pode gerar análises separadas para otimização do modelo no futuro (o ciclo pode começar a ser modelado de uma forma diferente com o tempo, mas mantendo a modelagem da sazonalidade e tendência, ou vice-versa). 
+
+A adoção desta técnica se baseia no fato de serem modelos robustos, explicáveis e que geraram bons resultados. 
+
+\subsection{Modelo de Médias Móveis Integradas Autorregressivas Sazonais com Variáveis Exógenas (SARIMAX)}
+
+O modelo SARIMAX é uma extensão da metodologia ARIMA (Autoregressive Integrated Moving Average), desenvolvida por Box e Jenkins (1970), projetada para lidar com séries temporais que apresentam padrões sazonais e são influenciadas por fatores externos (variáveis exógenas). Este modelo é amplamente utilizado por sua capacidade de decompor o comportamento de uma variável, como o volume de um reservatório em componentes estocásticos estruturados e adicionar parcelas complementares do conceito físico como a vazão, chuva etc. 
+
+Diferente de modelos puramente determinísticos, o SARIMAX assume que o valor presente da série pode ser explicado por uma combinação linear de seus valores passados, erros passados e variáveis auxiliares. Seus componentes fundamentais são descritos a seguir: 
+
+\begin{itemize}
+\item \textbf{Autorregressivo (AR - p)}: Representa a dependência linear entre a observação atual e observações anteriores (lags). No âmbito dos recursos hídricos, o componente AR captura a inércia hidrológica, partindo do princípio de que o volume de armazenamento de hoje é dependente do estado do reservatório no dia anterior. 
+\item \textbf{Integrado (I - d)}: Refere-se à aplicação de diferenciações na série original para remover tendências e torná-la estacionária (média e variância constantes).  
+\item \textbf{Média Móvel (MA - q)}: Modela a influência de choques aleatórios passados na observação atual. Funciona como um mecanismo de "amortecimento" de erros de previsão anteriores, capturando ruídos de curto prazo na série. 
+\item \textbf{Sazonalidade (S - P, D, Q, s)}: Estende a lógica AR, I e MA para intervalos sazonais fixos. Para dados diários do Sistema Cantareira, o parâmetro s=365 permite ao modelo comparar o comportamento do volume atual com o mesmo período em anos anteriores. 
+\item \textbf{Exógeno (X)}: Permite a integração de outras séries temporais que possuem relação causal com a variável alvo.
+\end{itemize}
+
+\subsubsection{Metodologia de Box-Jenkins}
+
+A aplicação do SARIMAX segue o rigor metodológico de Box-Jenkins, estruturado em quatro etapas cíclicas: 
+
+\begin{enumerate}
+\item \textbf{Identificação}: Verificação de estacionariedade via testes de raiz unitária (ex: Dickey-Fuller Aumentado) e análise de correlogramas (ACF e PACF) para sugerir as ordens iniciais de p, d, q. 
+\item \textbf{Estimação}: Ajuste dos coeficientes do modelo, geralmente através do método de Máxima Verossimilhança. 
+\item \textbf{Diagnóstico}: Análise dos resíduos para garantir que não restou informação sistemática não capturada (os resíduos devem se comportar como ruído branco). 
+\item \textbf{Previsão}: Utilização do modelo validado para a projeção de cenários futuros.
+\end{enumerate}
+
+\subsubsection{Limitações e Justificativa para Novas Abordagens}
+
+Apesar de sua robustez estatística, o SARIMAX apresenta limitações: 
+
+\begin{itemize}
+\item \textbf{Linearidade}: O modelo assume relações lineares entre as variáveis. Na prática, a dinâmica de um reservatório pode ser não-linear devido a fatores como geometria da bacia e evaporação variável. 
+\item \textbf{Memória de Curto Prazo}: O SARIMAX foca predominantemente em defasagens recentes. Ciclos de seca plurianuais podem exigir uma estrutura de memória mais complexa (como a presente em redes LSTM) ou uma engenharia de recursos (features) mais agressiva que a permitida pela estrutura rígida do SARIMAX.
+\end{itemize}
+
+Em testes realizados, este modelo não foi tão eficiente quanto a técnica de decomposição. 
+
+\subsection{Redes Neurais Recorrentes: Long Short-Term Memory (LSTM)}
+
+No campo do Deep Learning, as redes neurais do tipo LSTM (Long Short-Term Memory), introduzidas por Hochreiter e Schmidhuber (1997), representam uma evolução das Redes Neurais Recorrentes (RNNs) convencionais. Elas foram projetadas especificamente para superar o problema do "desvanecimento do gradiente" (vanishing gradient), permitindo que o modelo aprenda dependências de longo prazo em séries temporais complexas. 
+
+Diferente de modelos estatísticos lineares, a LSTM possui uma estrutura de "célula de memória" que funciona como uma esteira transportadora, mantendo informações relevantes por longos períodos e descartando o que não é mais necessário. 
+
+\subsubsection{Arquitetura e Funcionamento}
+
+O diferencial da LSTM reside em sua arquitetura interna composta por três "portões" (gates) principais que controlam o fluxo de informação: 
+
+\begin{itemize}
+\item \textbf{Portão de Esquecimento (Forget Gate)}: Decide qual parcela da informação anterior deve ser descartada da célula de memória, baseando-se no novo dado de entrada. 
+\item \textbf{Portão de Entrada (Input Gate)}: Seleciona quais novas informações são relevantes para serem armazenadas no estado da célula naquele momento. 
+\item \textbf{Portão de Saída (Output Gate)}: Determina qual parte do estado interno da célula será enviada como saída para o próximo passo temporal.
+\end{itemize}
+
+Essa dinâmica permite que a rede capture padrões sazonais extremamente complexos e relações não-lineares entre variáveis hidrológicas de forma automática, sem a necessidade de uma decomposição prévia da série. 
+
+\subsubsection{Desafios e justificativa para a não utilização}
+
+Apesar do alto desempenho preditivo em cenários de Big Data, a aplicação de LSTMs no monitoramento de reservatórios como o Sistema Cantareira apresenta desafios críticos que motivaram a escolha por abordagens de Machine Learning Clássico e Superposição: 
+
+\begin{itemize}
+\item \textbf{Necessidade de Volume de Dados}: Modelos de Deep Learning exigem bases de dados massivas para evitar o overfitting (sobreajuste).  
+\item \textbf{Complexidade e Custo Computacional}: O treinamento de uma LSTM é intensivo em termos de hardware (GPUs) e tempo.  
+\item \textbf{Perda de Explicabilidade}: Esta é a limitação mais severa para o tema em questão, uma vez que é requerido entender o porquê estamos com uma indicativa de situação crítica. Diferente do modelo de superposição (onde é claro o que é tendência e o que é sazonalidade e o que é ciclo), a LSTM é um modelo opaco. É extremamente difícil para um gestor identificar por que o modelo previu uma queda abrupta no volume, o que dificulta a defesa técnica de medidas de racionamento ou operações de contingência. 
+\item \textbf{Dificuldade com Variáveis Exógenas}: Embora possível, a integração de variáveis exógenas (como vazões jusante e natural) em redes neurais exige uma engenharia de dados muito mais complexa para garantir que a rede não atribua importância a ruídos temporais.
+\end{itemize}
+
 
 
 
