@@ -1,0 +1,38 @@
+% ----------------------------------------------------------
+\chapter{Fundamentação Teórica}\label{cap:fundamentacao}
+% ----------------------------------------------------------
+Deve-se inserir texto entre as seções.
+
+\section{Séries Temporais - Conceitos Fundamentais}
+
+\subsection{Definição}
+
+Séries temporais podem ser definidas como a observação de vários registros de uma variável ao longo do tempo, organizada em ordem cronológica \cite{Nielsen}. Segundo \textcite{Hyndman_Athanassopoulos}, diferente de problemas de aprendizado de máquina onde as variáveis são assumidas como independentes e identicamente distribuídas, em séries temporais, há uma dependência entre as variáveis próximas ao longo do tempo, o que exige métodos de análise, modelagem e validação que respeitam a causalidade e estrutura temporal.  
+
+Séries temporais geralmente apresentam componentes estruturados definidos como tendência, sazonalidade, ciclo e resíduos (ou ruído branco), \cite{Hyndman_Athanassopoulos}. Dessa forma, a análise desses dados em série temporal opera sob a premissa de que o valor observado é o resultado da interação simultânea dessas forças. Cada uma dessas componentes atua no comportamento da variável de forma diferente, conforme explicitado a seguir. 
+
+\subsection{Tendência}
+A Tendência pode ser definida como o componente que representa o movimento suave e de longo prazo de uma série temporal, refletindo a evolução estrutural do fenômeno observado. Segundo \textcite{Hyndman_Athanassopoulos}, a tendência não necessita ser estritamente linear; ela descreve a direção geral dos dados, ou seja, se é crescente, decrescente ou estável, desconsiderando as flutuações rápidas de curto prazo. \textcite{Morettin_Toloi} complementam que este componente, frequentemente chamado de "movimento secular", pode alterar sua direção ao longo do tempo, revelando pontos de inflexão onde uma série historicamente crescente passa a apresentar um comportamento de declínio. Em dados hidrológicos, por exemplo, isso pode representar a redução gradual do volume armazenado devido a mudanças climáticas ou aumento de demanda ao longo de décadas. 
+
+Do ponto de vista da modelagem em Machine Learning, a tendência é frequentemente tratada como um componente determinístico que pode ser capturado através de engenharia de features. A abordagem mais comum consiste em modelar a tendência em função do tempo, utilizando algoritmos lineares. Matematicamente, uma tendência linear simples pode ser expressa como Tt = B0 + B1t, onde B0 é o intercepto e B1 é a taxa de crescimento. Para tendências simples, utilizando polinômios de grau 1, a regressão linear consegue captar bem o comportamento, porém para tendências mais complexas, a utilização de técnicas de regularização, como Lasso e Ridge, torna-se indispensável ao modelar a tendência através de funções polinomiais de grau superior. 
+
+Conforme destacam James et al. (2021), embora polinômios de grau elevado permitam um ajuste mais flexível aos dados, eles frequentemente sofrem de alta variância, resultando em curvas excessivamente oscilatórias que se superajustam aos dados, causando overfitting do modelo. Esse comportamento é exacerbado nas extremidades da série temporal, um efeito conhecido na análise numérica como Fenômeno de Runge, onde a predição tende a divergir rapidamente. Para minimizar esses riscos, a aplicação de métodos de regularização impõe uma penalidade á magnitude dos coeficientes do modelo, tentando forçar os coeficientes em direção a zero Hastie, Tibshirani e Friedman (2009). Isso garante que a curva de tendência resultante permaneça estável, melhorando a capacidade de generalização do modelo para dados futuros e evitando projeções irrealistas no horizonte de previsão. 
+
+\subsection{Sazonalidade}
+
+A sazonalidade, é um padrão de comportamento que se repete em intervalos de tempo fixos e conhecidos, e que influencia a série temporal de forma regular. Diferentemente de outros movimentos oscilatórios, a principal característica da sazonalidade é a força de sua periodicidade, que pode ser diária, semanal, mensal, anual ou outro intervalo temporal. Segundo Hyndman e Athanasopoulos (2021), a previsibilidade dessa componente da série temporal é alta, justamente por estar relacionada ao calendário e a ciclos naturais bem estabelecidos, o que possibilita sua fácil identificação e modelagem.  
+
+Conforme é evidenciado por Morettin e Toloi (2018), quando se refere a dados hidrológicos, a sazonalidade é frequentemente a manifestação direta de fenômenos climatológicos. As estações do ano estabelecem os regimes pluviométricos, criando períodos de seca e estiagem que podem afetar diretamente o volume dos reservatórios. Essa sazonalidade, de frequência anual, sugere que o comportamento da série temporal, em um determinado mês, por exemplo dezembro, possui alta correlação com o comportamento observado no mesmo mês nos anos anteriores.  
+
+Do ponto de vista de modelagem para aplicações de Machine Learning, a representação matemática da sazonalidade exige estratégias especificas, principalmente na engenharia de features. No contexto de fenômenos naturais como a variação de volume em reservatórios, segundo Hyndman e Athanasopoulos (2021) as séries de Fourier apresentam vantagens significativas sobre o uso de variáveis binárias. Uma vez que dummies tratam a sazonalidade de forma discreta, mudando de nível a cada mês ou período de tempo, os termos de Fourier, composto por funções de seno e cosseno, captam a transição entre períodos de chuva e estiagem por exemplo, e conseguem aproximar melhor a repetição desse padrão hidrológico.   
+
+Ainda sob a ótica de modelagem é importante ressaltar que, modelos lineares como: Regressão Linear, Lasso, Ridge, e Redes Neurais terão melhor desempenho com a modelagem da sazonalidade. Isso se deve ao fato de que um fluxo sazonal, na maioria das vezes é uma junção de diversas sazonalidades primárias, ou seja, possuem movimentações menores e maiores que somadas dão a sazonalidade completa. Os termos de Fourier são ondas de seno e cosseno, somá-las cria uma onda composta melhor, então o modelo linear desenha a curva da sazonalidade naturalmente. Já modelos baseados em árvores, não conseguem fazer esse ajuste, seu princípio está baseado em uma função degrau que criam cortes ortogonais através de condições. Para um modelo de árvores desenhar uma curva sazonal, no formato de onda (senoide), precisaria criar muitas camadas, e resultaria em uma árvore muito profunda, tornando-se menos eficiente que o processo através de modelos lineares.    
+
+
+
+
+
+
+
+
+
