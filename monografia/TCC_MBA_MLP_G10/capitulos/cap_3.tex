@@ -2,19 +2,20 @@
 \chapter{Metodologia}
 % ----------------------------------------------------------
 
-\section{Obtenção dos Dados} 
+\section{Obtenção dos Dados}
 
-Os dados são obtidos via api no site (https://mananciais.sabesp.com.br/api/v4) da SABESP, esses dados são populados diariamente em uma base de consulta pública com informações da   situação nos níveis, vazões, precipitação e demais dados inerentes de cada reservatório individualmente, bem como do Sistema Cantareira Equivalente (SCE), que retrata o sistema como um todo. O SCE, basicamente, é uma agregação dos valores individuais dos reservatórios e suas vazões de tal forma que representem um modelo de sistema um pouco menos complexo. E são esses dados do SCE que foram utilizados neste estudo. 
+Os dados são obtidos via api no site (https://mananciais.sabesp.com.br/api/v4) da SABESP, esses dados são populados diariamente em uma base de consulta pública com informações da   situação nos níveis, vazões, precipitação e demais dados inerentes de cada reservatório individualmente, bem como do Sistema Cantareira Equivalente (SCE), que retrata o sistema como um todo. O SCE, basicamente, é uma agregação dos valores individuais dos reservatórios e suas vazões de tal forma que representem um modelo de sistema um pouco menos complexo. E são esses dados do SCE que foram utilizados neste estudo.
 
-Para as requisições no site da SABESP enviamos parâmetros para designar o que queremos extrair, são eles: Data de Início; Data Fim; Número que indica o reservatório ou SCE (em nosso estudo, utilizamos para o SCE). O retorno dessa requisição é um json com todas as informações sobre o SCE para a data determinada que estamos fazendo a coleta. 
+Para as requisições no site da SABESP enviamos parâmetros para designar o que queremos extrair, são eles: Data de Início; Data Fim; Número que indica o reservatório ou SCE (em nosso estudo, utilizamos para o SCE). O retorno dessa requisição é um json com todas as informações sobre o SCE para a data determinada que estamos fazendo a coleta.
 
-Apesar dos dados serem atualizados diariamente, devido a variação diária ser muito baixa no volume (pelo próprio conceito físico), optamos por fazer extrações semanais dos dados. A \autoref{tab:dados_cantareira} mostra o formato final dos dados que obtivemos.
+Apesar dos dados serem atualizados diariamente, devido a variação diária ser muito baixa no volume (pelo próprio conceito físico), optamos por fazer extrações semanais dos dados. A Tabela \ref{tab:dados_cantareira} mostra o formato final dos dados que obtivemos.
 
 \begin{table}[H]
 	\centering
 	\caption{Exemplo de dados do Sistema Cantareira Equivalente (SCE).}
 	\label{tab:dados_cantareira}
 	\small
+	\resizebox{\textwidth}{!}{
 	\begin{tabular}{|c|c|c|c|c|c|c|}
 		\hline
 		\textbf{Data} & \textbf{Chuva} & \textbf{Volume Útil} & \textbf{Volume Útil} & \textbf{Volume Total} & \textbf{Vazão} & \textbf{Vazão} \\
@@ -31,6 +32,7 @@ Apesar dos dados serem atualizados diariamente, devido a variação diária ser 
 		05/01/2000 & 25,900 & 51,95 & 403,00 & 1109,55 & 6,33 & 211,60 \\
 		\hline
 	\end{tabular}
+	}
 	\fonte{Elaborado pelos autores com base em dados da SABESP (2025).}
 \end{table}
 
@@ -38,7 +40,7 @@ Apesar dos dados serem atualizados diariamente, devido a variação diária ser 
 
 \subsection{Variável Alvo - Volume Útil(\%)}
 
-O objetivo será através das previsões notificar se o volume útil atingirá essa marca no horizonte projetado. Entendendo melhor o que cada variável representa podemos começar a destrinchar a análise sobre cada uma delas para identificar e entender comportamentos que servirão de base para nossa modelagem mais adiante. Na \autoref{fig:Fig_3} a seguir, é possível visualizar o gráfico de linha da série temporal de todo período de dados coletado da nossa variável alvo. 
+O objetivo será através das previsões notificar se o volume útil atingirá essa marca no horizonte projetado. Entendendo melhor o que cada variável representa podemos começar a destrinchar a análise sobre cada uma delas para identificar e entender comportamentos que servirão de base para nossa modelagem mais adiante. Na Figura \ref{fig:Fig_3} a seguir, é possível visualizar o gráfico de linha da série temporal de todo período de dados coletado da nossa variável alvo. 
 
 \begin{figure}[H]
 	\centering
@@ -48,7 +50,7 @@ O objetivo será através das previsões notificar se o volume útil atingirá e
 	\fonte{Elaborado pelos autores com base em dados da SABESP (2025).}
 \end{figure}
 
-Observando o gráfico da figura x, é possível identificar alguns comportamentos nos dados, como por exemplo o aumento e diminuição no volume em virtude dos períodos de chuva e seca ao longo das estações do ano. Nota-se que não há variações bruscas no volume, o aumento e diminuição ocorre de forma gradativa, em valores predominantemente nas faixas normais e de atenção. No entanto, em períodos excepcionais como a crise hídrica entre 2014 e 2015, é possível ver que o comportamento da variável permanece por período prolongado em níveis de alerta, restrição e excepcional, episódios que evidenciam condições hidrológicas adversas persistentes, distintas do padrão sazonal observado na maior parte do período analisado. Na \autoref{fig:Fig_4} a seguir, podemos visualizar como se comporta essa distribuição dos valores ao longo do ano.  
+Observando o gráfico da Figura x, é possível identificar alguns comportamentos nos dados, como por exemplo o aumento e diminuição no volume em virtude dos períodos de chuva e seca ao longo das estações do ano. Nota-se que não há variações bruscas no volume, o aumento e diminuição ocorre de forma gradativa, em valores predominantemente nas faixas normais e de atenção. No entanto, em períodos excepcionais como a crise hídrica entre 2014 e 2015, é possível ver que o comportamento da variável permanece por período prolongado em níveis de alerta, restrição e excepcional, episódios que evidenciam condições hidrológicas adversas persistentes, distintas do padrão sazonal observado na maior parte do período analisado. Na Figura \ref{fig:Fig_4} a seguir, podemos visualizar como se comporta essa distribuição dos valores ao longo do ano.  
 
 É curioso observar que, conforme será mostrado na análise de variáveis exógenas, o período chuvoso ocorre entre outubro e março, porém os meses de cheia no reservatório ocorre fora desse período, o que mostra que a chuva pode não ter ação imediata sobre o volume do reservatório, mas um efeito a médio longo prazo, influenciando primeiro nos rios e mananciais que alimentam o reservatório e contribuindo para aumentar a vazão natural por exemplo, que ai sim de fato espera-se que influencie mais no volume útil armazenado.  
 
