@@ -32,9 +32,9 @@ Ainda sob a ótica de modelagem é importante ressaltar que, modelos lineares co
 
 A componente de ciclo refere-se a flutuações de aumento e diminuição nos dados, que ocorrem sem uma frequência determinada.  Essa falta de periodicidade é a principal diferença entre o ciclo e a sazonalidade, visto que, enquanto os padrões sazonais são estritamente vinculados ao calendário, como as estações do ano conforme citado acima, os ciclos possuem duração variável podendo ter duração muito maior do que os períodos sazonais, e ainda apresentam uma variação de magnitude imprevisível conforme citam \cite{Hyndman_Athanassopoulos}.  
 
-No contexto de séries temporais hidrológicas, os ciclos não são apenas artefatos estatísticos, mas frequentemente são reflexos de fenômenos climáticos de grande escala. \textcite{Morettin_Toloi}, ressaltam que séries geofísicas, em sua maioria, apresentam comportamentos de memória longa. Na hidrologia, isso se expressa na influência de fenômenos naturais como por exemplo: El Niño Oscilação Sul e Oscilação Decadal do Pacífico. Tais fenômenos provocam ciclos pluviométricos anormais como por exemplo, períodos estendidos de seca ou cheia, que fogem a sazonalidade anual padrão. Foi o que ocorreu na crise hídrica que atingiu a Região Metropolitana de São Paulo em 2014 e 2015, onde conforme \textcite{Marengo}, as anomalias climáticas ocorridas causaram uma queda extrema no volume de chuva no período chuvoso do verão, o que ocasionou o não reabastecimento do Sistema Cantareira.  
+No contexto de séries temporais hidrológicas, os ciclos não são apenas artefatos estatísticos, mas frequentemente são reflexos de fenômenos climáticos de grande escala. \textcite{Morettin_Toloi}, ressaltam que séries geofísicas, em sua maioria, apresentam comportamentos de memória longa. Na hidrologia, isso se expressa na influência de fenômenos naturais como por exemplo: El Niño Oscilação Sul e Oscilação Decadal do Pacífico. Tais fenômenos provocam ciclos pluviométricos anormais como por exemplo, períodos estendidos de seca ou cheia, que fogem a sazonalidade anual padrão. Foi o que ocorreu na crise hídrica que atingiu a \acrshort{RMSP} em 2014 e 2015, onde conforme \textcite{Marengo}, as anomalias climáticas ocorridas causaram uma queda extrema no volume de chuva no período chuvoso do verão, o que ocasionou o não reabastecimento do \acrfull{SC}.  
 
-No que se refere a modelagem, há desafios específicos na modelagem de ciclos, dada a complexidade dos regimes hidrológicos, a modelagem isolada dessa componente exige uma abordagem que vá além das funções determinísticas de tempo. No método proposto neste estudo adota-se uma abordagem hibrida em estágios similar a proposta por \cite{Zhang}. Para lidar com a componente cíclica, separadamente dos componentes de tendência e sazonalidade, observou-se que modelos não paramétricos baseados em instância como o KNN (K-Nearest Neighbors) foram mais eficazes. De acordo com \textcite{Hastie_Tibshirani_Friedman}, diferente de modelos lineares que tentam ajustar uma única equação para todo conjunto de dados, o KNN prevê o estado futuro baseando-se na média dos k vizinhos mais similares no espaço de características, como os dados passados mais recentes (lags) e/ou outras variáveis. Isso permite que o modelo identifique padrões recorrentes e anomalias e os projete no futuro.  
+No que se refere a modelagem, há desafios específicos na modelagem de ciclos, dada a complexidade dos regimes hidrológicos, a modelagem isolada dessa componente exige uma abordagem que vá além das funções determinísticas de tempo. No método proposto neste estudo adota-se uma abordagem hibrida em estágios similar a proposta por \cite{Zhang}. Para lidar com a componente cíclica, separadamente dos componentes de tendência e sazonalidade, observou-se que modelos não paramétricos baseados em instância como o \acrfull{KNN} foram mais eficazes. De acordo com \textcite{Hastie_Tibshirani_Friedman}, diferente de modelos lineares que tentam ajustar uma única equação para todo conjunto de dados, o KNN prevê o estado futuro baseando-se na média dos k vizinhos mais similares no espaço de características, como os dados passados mais recentes (lags) e/ou outras variáveis. Isso permite que o modelo identifique padrões recorrentes e anomalias e os projete no futuro.  
 
 \subsection{Resíduos ou Ruído Branco}
 
@@ -69,7 +69,7 @@ Onde:
 
 A principal vantagem da superposição de efeitos reside na especialização algorítmica. Modelos distintos possuem capacidades diferentes: algoritmos lineares (como Regressão Linear, Ridge ou Lasso) são eficazes na captura de tendências e sazonalidades, apresentando boa capacidade de extrapolação, uma característica crucial para prever valores que superam os máximos históricos de uma série. 
 
-Em contrapartida, modelos baseados em árvores de decisão (como Random Forest ou XGBoost) ou de vizinhos mais próximos (k-nearest-neighbors - KNN), são robustos para capturar relações não-lineares e padrões complexos no ciclo, porém apresentam limitações para lidar com tendências, uma vez que não conseguem extrapolar valores fora do intervalo observado no treinamento. 
+Em contrapartida, modelos baseados em árvores de decisão (como Random Forest ou XGBoost) ou de vizinhos mais próximos (\acrshort{KNN}), são robustos para capturar relações não-lineares e padrões complexos no ciclo, porém apresentam limitações para lidar com tendências, uma vez que não conseguem extrapolar valores fora do intervalo observado no treinamento. 
 
 Dessa forma, a estratégia de modelagem proposta consiste na construção de um sistema híbrido: 
 
@@ -82,25 +82,25 @@ A previsão final é, portanto, a combinação linear dos outputs de ambos os mo
 
 A adoção desta técnica baseia-se no fato de serem modelos robustos, explicáveis e que geraram bons resultados. 
 
-\subsection{Modelo de Médias Móveis Integradas Autorregressivas Sazonais com Variáveis Exógenas (SARIMAX)}
+\subsection{Modelo de Médias Móveis Integradas Autorregressivas Sazonais com Variáveis Exógenas (\acrfull{SARIMAX})}
 
-O modelo SARIMAX é uma extensão da metodologia ARIMA (Autoregressive Integrated Moving Average), desenvolvida por \textcite{box_jenkins}, projetada para lidar com séries temporais que apresentam padrões sazonais e são influenciadas por fatores externos (variáveis exógenas). Este modelo é amplamente utilizado por sua capacidade de decompor o comportamento de uma variável, como o volume de um reservatório em componentes estocásticos estruturados e adicionar parcelas complementares do conceito físico como a vazão, chuva etc. 
+O modelo \acrshort{SARIMAX} é uma extensão da metodologia \acrfull{ARIMA}, desenvolvida por \textcite{box_jenkins}, projetada para lidar com séries temporais que apresentam padrões sazonais e são influenciadas por fatores externos (variáveis exógenas). Este modelo é amplamente utilizado por sua capacidade de decompor o comportamento de uma variável, como o volume de um reservatório em componentes estocásticos estruturados e adicionar parcelas complementares do conceito físico como a vazão, chuva etc. 
 
-Diferente de modelos puramente determinísticos, o SARIMAX assume que o valor presente da série pode ser explicado por uma combinação linear de seus valores passados, erros passados e variáveis auxiliares. Seus componentes fundamentais são descritos a seguir: 
+Diferente de modelos puramente determinísticos, o \acrshort{SARIMAX} assume que o valor presente da série pode ser explicado por uma combinação linear de seus valores passados, erros passados e variáveis auxiliares. Seus componentes fundamentais são descritos a seguir: 
 \begin{itemize}
 \item \textbf{Autorregressivo (AR - p)}: Representa a dependência linear entre a observação atual e observações anteriores (lags). No âmbito dos recursos hídricos, o componente AR captura a inércia hidrológica, partindo do princípio de que o volume de armazenamento de hoje é dependente do estado do reservatório no dia anterior. 
 \item \textbf{Integrado (I - d)}: Refere-se à aplicação de diferenciações na série original para remover tendências e torná-la estacionária (média e variância constantes).  
 \item \textbf{Média Móvel (MA - q)}: Modela a influência de choques aleatórios passados na observação atual. Funciona como um mecanismo de "amortecimento" de erros de previsão anteriores, capturando ruídos de curto prazo na série. 
-\item \textbf{Sazonalidade (S - P, D, Q, s)}: Estende a lógica AR, I e MA para intervalos sazonais fixos. Para dados diários do Sistema Cantareira, o parâmetro s=365 permite ao modelo comparar o comportamento do volume atual com o mesmo período em anos anteriores. 
+\item \textbf{Sazonalidade (S - P, D, Q, s)}: Estende a lógica AR, I e MA para intervalos sazonais fixos. Para dados diários do \acrshort{SC}, o parâmetro s=365 permite ao modelo comparar o comportamento do volume atual com o mesmo período em anos anteriores. 
 \item \textbf{Exógeno (X)}: Permite a integração de outras séries temporais que possuem relação causal com a variável alvo.
 \end{itemize}
 
 \subsubsection{Metodologia de Box-Jenkins}
 
-A aplicação do SARIMAX segue o rigor metodológico de Box-Jenkins, estruturado em quatro etapas cíclicas: 
+A aplicação do \acrshort{SARIMAX} segue o rigor metodológico de Box-Jenkins, estruturado em quatro etapas cíclicas: 
 
 \begin{enumerate}
-\item \textbf{Identificação}: Verificação de estacionariedade via testes de raiz unitária (ex: Dickey-Fuller Aumentado) e análise de correlogramas (ACF e PACF) para sugerir as ordens iniciais de p, d, q. 
+\item \textbf{Identificação}: Verificação de estacionariedade via testes de raiz unitária (ex: Dickey-Fuller Aumentado) e análise de correlogramas (\acrfull{ACF} e \acrfull{PACF}) para sugerir as ordens iniciais de p, d, q. 
 \item \textbf{Estimação}: Ajuste dos coeficientes do modelo, geralmente através do método de Máxima Verossimilhança. 
 \item \textbf{Diagnóstico}: Análise dos resíduos para garantir que não restou informação sistemática não capturada (os resíduos devem se comportar como ruído branco). 
 \item \textbf{Previsão}: Utilização do modelo validado para a projeção de cenários futuros.
@@ -108,24 +108,24 @@ A aplicação do SARIMAX segue o rigor metodológico de Box-Jenkins, estruturado
 
 \subsubsection{Limitações e Justificativa para Novas Abordagens}
 
-Apesar de sua robustez estatística, o SARIMAX apresenta limitações: 
+Apesar de sua robustez estatística, o \acrshort{SARIMAX} apresenta limitações: 
 
 \begin{itemize}
 \item \textbf{Linearidade}: O modelo assume relações lineares entre as variáveis. Na prática, a dinâmica de um reservatório pode ser não-linear devido a fatores como geometria da bacia e evaporação variável. 
-\item \textbf{Memória de Curto Prazo}: O SARIMAX foca predominantemente em defasagens recentes. Ciclos de seca plurianuais podem exigir uma estrutura de memória mais complexa (como a presente em redes LSTM) ou uma engenharia de recursos (features) mais agressiva que a permitida pela estrutura rígida do SARIMAX.
+\item \textbf{Memória de Curto Prazo}: O \acrshort{SARIMAX} foca predominantemente em defasagens recentes. Ciclos de seca plurianuais podem exigir uma estrutura de memória mais complexa (como a presente em redes \acrshort{LSTM}) ou uma engenharia de recursos (features) mais agressiva que a permitida pela estrutura rígida do \acrshort{SARIMAX}.
 \end{itemize}
 
 Em testes realizados, este modelo não foi tão eficiente quanto a técnica de decomposição. 
 
-\subsection{Redes Neurais Recorrentes: Long Short-Term Memory (LSTM)}
+\subsection{Redes Neurais Recorrentes: \acrfull{LSTM}}
 
-No campo do Deep Learning, as redes neurais do tipo LSTM (Long Short-Term Memory), introduzidas por \textcite{Hochreiter_Schmidhuber}, representam uma evolução das Redes Neurais Recorrentes (RNNs) convencionais. Elas foram projetadas especificamente para superar o problema do "desvanecimento do gradiente" (vanishing gradient), permitindo que o modelo aprenda dependências de longo prazo em séries temporais complexas. 
+No campo do Deep Learning, as redes neurais do tipo \acrshort{LSTM}, introduzidas por \textcite{Hochreiter_Schmidhuber}, representam uma evolução das \acrfull{RNNs} convencionais. Elas foram projetadas especificamente para superar o problema do "desvanecimento do gradiente" (vanishing gradient), permitindo que o modelo aprenda dependências de longo prazo em séries temporais complexas. 
 
-Diferente de modelos estatísticos lineares, a LSTM possui uma estrutura de "célula de memória" que funciona como uma esteira transportadora, mantendo informações relevantes por longos períodos e descartando o que não é mais necessário. 
+Diferente de modelos estatísticos lineares, a \acrshort{LSTM} possui uma estrutura de "célula de memória" que funciona como uma esteira transportadora, mantendo informações relevantes por longos períodos e descartando o que não é mais necessário. 
 
 \subsubsection{Arquitetura e Funcionamento}
 
-O diferencial da LSTM reside em sua arquitetura interna composta por três "portões" (gates) principais que controlam o fluxo de informação: 
+O diferencial da \acrshort{LSTM} reside em sua arquitetura interna composta por três "portões" (gates) principais que controlam o fluxo de informação: 
 
 \begin{itemize}
 \item \textbf{Portão de Esquecimento (Forget Gate)}: Decide qual parcela da informação anterior deve ser descartada da célula de memória, baseando-se no novo dado de entrada. 
@@ -137,18 +137,18 @@ Essa dinâmica permite que a rede capture padrões sazonais extremamente complex
 
 \subsubsection{Desafios e justificativa para a não utilização}
 
-Apesar do alto desempenho preditivo em cenários de Big Data, a aplicação de LSTMs no monitoramento de reservatórios como o Sistema Cantareira apresenta desafios críticos que motivaram a escolha por abordagens de Machine Learning Clássico e Superposição: 
+Apesar do alto desempenho preditivo em cenários de Big Data, a aplicação de \acrshort{LSTM}s no monitoramento de reservatórios como o \acrshort{SC} apresenta desafios críticos que motivaram a escolha por abordagens de Machine Learning Clássico e Superposição: 
 
 \begin{itemize}
 \item \textbf{Necessidade de Volume de Dados}: Modelos de Deep Learning exigem bases de dados massivas para evitar o overfitting (sobreajuste).  
 \item \textbf{Complexidade e Custo Computacional}: O treinamento de uma LSTM é intensivo em termos de hardware (GPUs) e tempo.  
-\item \textbf{Perda de Explicabilidade}: Esta é a limitação mais severa para o tema em questão, uma vez que é requerido entender o porquê estamos com uma indicativa de situação crítica. Diferente do modelo de superposição (onde é claro o que é tendência e o que é sazonalidade e o que é ciclo), a LSTM é um modelo opaco. É extremamente difícil para um gestor identificar por que o modelo previu uma queda abrupta no volume, o que dificulta a defesa técnica de medidas de racionamento ou operações de contingência. 
+\item \textbf{Perda de Explicabilidade}: Esta é a limitação mais severa para o tema em questão, uma vez que é requerido entender o porquê estamos com uma indicativa de situação crítica. Diferente do modelo de superposição (onde é claro o que é tendência e o que é sazonalidade e o que é ciclo), a \acrshort{LSTM} é um modelo opaco. É extremamente difícil para um gestor identificar por que o modelo previu uma queda abrupta no volume, o que dificulta a defesa técnica de medidas de racionamento ou operações de contingência. 
 \item \textbf{Dificuldade com Variáveis Exógenas}: Embora possível, a integração de variáveis exógenas (como vazões jusante e natural) em redes neurais exige uma engenharia de dados muito mais complexa para garantir que a rede não atribua importância a ruídos temporais.
 \end{itemize}
 
-\section{Sistema Cantareira e Termos Operacionais}
+\section{\acrfull{SC} e Termos Operacionais}
 
-Esta seção tem por objetivo descrever termos operacionais e hidrológicos importantes ao entendimento do Sistema Cantareira, fornecidos pela \cite{ANA_GlossarioCantareira_2019}. 
+Esta seção tem por objetivo descrever termos operacionais e hidrológicos importantes ao entendimento do \acrshort{SC}, fornecidos pela \cite{ANA_GlossarioCantareira_2019}. 
 
 Vazão natural, ou também denonimada vazão afluente de um rio ou reservatório refere-se ao fluxo de água em um ponto sem interferência humana como barragens, desvios ou captações e representa um comportamento hidrológico original da bacia. No reservatório, representa a vazão da água que entra no mesmo.  
 
@@ -160,9 +160,9 @@ O volume útil é a água que está entre os níveis mínimo e máximo operacion
 
 O volume disponível, ou total, corresponde à soma do volume útil com o volume abaixo do nível mínimo operacional.  
 
-Com base no volume útil, a Agência Nacional de Águas e Saneamento Básico (ANA) estabelece faixas operacionais para o Sistema Cantareira \cite{cemaden_cantareira_2025}, definidas em função do percentual de volume útil armazenado. As faixas indicam o grau de risco ao abastecimento e orientam a gestão do sistema. 
+Com base no volume útil, a \acrshort{ANA} estabelece faixas operacionais para o \acrshort{SC} \cite{cemaden_cantareira_2025}, definidas em função do percentual de volume útil armazenado. As faixas indicam o grau de risco ao abastecimento e orientam a gestão do sistema. 
 
-Quando o sistema opera com volume útil igual ou superior a 60\%, encontra-se na faixa considerada normal, com boa margem de segurança hídrica. Entre 40\% e 60\%, o sistema entra em faixa de atenção, indicando necessidade de monitoramento. Entre 30\% e 40\%, o sistema está na faixa de alerta, indicando maior vulnerabilidade. Entre 20\% e 30\%, o sistema está na faixa de restrição, considerada crítica, pois implica em limitações severas nas vazões de captação e grande risco de desabastecimento. Abaixo de 20\%, o sistema é classificado em faixa especial, representando situação extrema de escassez hídrica. Na \autoref{fig:Fig_2} a seguir, é possível visualizar o posicionamento das faixas de classificação do volume útil do Sistema Cantareira.  
+Quando o sistema opera com volume útil igual ou superior a 60\%, encontra-se na faixa considerada normal, com boa margem de segurança hídrica. Entre 40\% e 60\%, o sistema entra em faixa de atenção, indicando necessidade de monitoramento. Entre 30\% e 40\%, o sistema está na faixa de alerta, indicando maior vulnerabilidade. Entre 20\% e 30\%, o sistema está na faixa de restrição, considerada crítica, pois implica em limitações severas nas vazões de captação e grande risco de desabastecimento. Abaixo de 20\%, o sistema é classificado em faixa especial, representando situação extrema de escassez hídrica. Na \autoref{fig:Fig_2} a seguir, é possível visualizar o posicionamento das faixas de classificação do volume útil do \acrshort{SC}.  
 
 \begin{figure}[H]
 	\centering

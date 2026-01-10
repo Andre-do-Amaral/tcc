@@ -2,4 +2,20 @@
 \chapter{Conclusão}
 % ----------------------------------------------------------
 
-As conclusões devem responder às questões da pesquisa, em relação aos objetivos e às hipóteses. Devem ser breves, podendo apresentar recomendações e sugestões para trabalhos futuros.
+O presente trabalho cumpriu seu objetivo central de aplicar, na prática, os conhecimentos teóricos adquiridos, consolidando-os em uma solução de ciência de dados com arquitetura produtiva. Ao integrar conceitos de Engenharia de Software e Hidrologia, a ferramenta desenvolvida mostrou-se eficaz no auxílio à gestão dos recursos hídricos do \acrshort{SC}, cuja posição estratégica no abastecimento da maior metrópole da América do Sul reforça a pertinência do tema. Em um cenário marcado por mudanças climáticas e eventos extremos, a transição de uma gestão reativa para uma abordagem preventiva baseada em dados ultrapassa a inovação tecnológica, configurando-se como uma necessidade premente de segurança hídrica e social. 
+
+No que tange à modelagem preditiva, a abordagem híbrida em cascata apresentou desempenho superior às técnicas puramente estatísticas, como \acrshort{SARIMAX}, e aos modelos de "caixa-preta" (Deep Learning isolado). Ao desacoplar os componentes determinísticos (tendência e sazonalidade) dos estocásticos (ciclos e resíduos), garantiu-se não apenas uma acurácia robusta com \acrshort{RMSE} médios entre 2,1 e 2,2 nos testes de validação, mas principalmente a explicabilidade do modelo. Essa característica é vital para a tomada de decisão, pois permite ao \acrshort{SABESP} discernir se uma oscilação no volume se trata de um movimento sazonal esperado ou de uma anomalia crítica, conferindo a confiabilidade estatística necessária para embasar ações de mitigação. 
+
+Visando uma arquitetura produtiva, a infraestrutura foi alicerçada inteiramente em serviços de computação em nuvem do \acrshort{AWS} sob o paradigma serverless. A orquestração de serviços como \acrshort{AWS} Lambda, \acrshort{ECS} e Step Functions resultou em um pipeline de MLOps automatizado e escalável, dispensando investimentos massivos em hardware físico (on-premise) ou infraestruturas muito robustas usadas em projetos necessariamente escaláveis. Essa estrutura assegura a operação contínua do sistema, que realiza coletas e inferências autônomas, transformando dados brutos em inteligência capaz de antecipar a transição para faixas de risco, como o limiar de 30\% do volume útil. 
+
+Sob a ótica financeira, a solução comprovou sua sustentabilidade. O custo operacional (\acrshort{OPEX}) da estrutura em nuvem mostra-se irrisório se contrastado com os prejuízos potenciais de uma crise hídrica, que historicamente impõe perdas bilionárias à indústria, ao agronegócio e à saúde pública. Valida-se, assim, a premissa de que o "custo da prevenção" é infinitamente inferior ao "custo do desastre", confirmando a viabilidade econômica do projeto frente aos imensuráveis benefícios sociais de se evitar um colapso no abastecimento. 
+
+Em suma, este trabalho deixa como legado uma base sólida para a modernização da gestão hídrica. Para trabalhos futuros, sugere-se o desenvolvimento de interfaces visuais interativas (dashboards) e o estabelecimento de parcerias técnicas para enriquecer o modelo com novas variáveis exógenas. Conclui-se que a solução cumpre seu papel acadêmico e social, entregando valor real ao alinhar rigor técnico e viabilidade financeira na proteção de um dos recursos mais essenciais à vida. 
+
+\section{Próximos Passos}
+
+Avaliamos para trabalhos futuros a possibilidade de disponibilizar os dados por meio de visualizações gráficas interativas como um dashboard em streamlit, para que a operadora tome suas próprias conclusões de forma mais facilitada e possa comparar modelos de forma mais rápida e fluida.  
+
+Além disso, consideramos que pode ser válido uma participação mútua com o \acrshort{SABESP} para tentar, com o conhecimento especializado do negócio por parte dela, incluir novas variáveis e implementações que deixem o modelo mais robusto. 
+
+Ademais, é interessante fazer uma análise mais detalhada para entender as influências das variáveis e identificar pontos que podem fazer o modelo errar ou propagar erros, isto é, explorar mais a explicabilidade dos modelos de modo a melhorar modelos futuros.  

@@ -2,11 +2,11 @@
 \chapter{Metodologia}
 % ----------------------------------------------------------
 
-\section{Obtenção dos Dados}
+\section{Obtenção dos Dados} 
 
-Os dados são obtidos via api no site (https://mananciais.sabesp.com.br/api/v4) da SABESP, esses dados são populados diariamente em uma base de consulta pública com informações da   situação nos níveis, vazões, precipitação e demais dados inerentes de cada reservatório individualmente, bem como do Sistema Cantareira Equivalente (SCE), que retrata o sistema como um todo. O SCE, basicamente, é uma agregação dos valores individuais dos reservatórios e suas vazões de tal forma que representem um modelo de sistema um pouco menos complexo. E são esses dados do SCE que foram utilizados neste estudo.
+Os dados são obtidos via \acrfull{API} no site (https://mananciais.sabesp.com.br/api/v4) do \acrshort{SABESP}, esses dados são populados diariamente em uma base de consulta pública com informações da   situação nos níveis, vazões, precipitação e demais dados inerentes de cada reservatório individualmente, bem como do \acrfull{SCE}, que retrata o sistema como um todo. O \acrshort{SCE}, basicamente, é uma agregação dos valores individuais dos reservatórios e suas vazões de tal forma que representem um modelo de sistema um pouco menos complexo. E são esses dados do \acrshort{SCE} que foram utilizados neste estudo.
 
-Para as requisições no site da SABESP enviamos parâmetros para designar o que queremos extrair, são eles: Data de Início; Data Fim; Número que indica o reservatório ou SCE (em nosso estudo, utilizamos para o SCE). O retorno dessa requisição é um json com todas as informações sobre o SCE para a data determinada que estamos fazendo a coleta.
+Para as requisições no site do \acrshort{SABESP} enviamos parâmetros para designar o que queremos extrair, são eles: Data de Início; Data Fim; Número que indica o reservatório ou \acrshort{SCE} (em nosso estudo, utilizamos para o \acrshort{SCE}). O retorno dessa requisição é um \acrfull{JSON} com todas as informações sobre o \acrshort{SCE} para a data determinada que estamos fazendo a coleta.
 
 Apesar dos dados serem atualizados diariamente, devido a variação diária ser muito baixa no volume (pelo próprio conceito físico), optamos por fazer extrações semanais dos dados. A Tabela \ref{tab:dados_cantareira} mostra o formato final dos dados que obtivemos.
 
@@ -82,7 +82,7 @@ Outra análise realizada sobre sazonalidade a sazonalidade da variável alvo, fo
 	\fonte{Elaborado pelos autores com base em dados da SABESP (2025).}
 \end{figure}
 
-Outro aspecto fundamental de uma série temporal que foi analisado, é a relação da variável com os seus valores anteriores, visto que a modelagem de uma série temporal tem, entre outros objetivos, aprender comportamentos com os dados do passado, para prever cenários futuros \cite{Nielsen}. A \autoref{fig:Fig_7} a seguir, mostra a autocorrelação e a autocorrelação parcial da variável alvo, a autocorrelação nos mostra que a variável alvo possui uma inércia alta, ou seja, varia lentamente, no dia 1 a autocorrelação é 1, e no dia 60 ainda está muito próximo de 1. E com a autocorrelação parcial, podemos concluir que o volume do dia anterior é praticamente o volume de hoje, ou seja, o lag 1 pode ser uma ótima variável preditora já que a PACF é 1. Entretando pode-se observar que o mesmo já não vale para o lag 2 em diante, pois a PACF cai abruptamente.  
+Outro aspecto fundamental de uma série temporal que foi analisado, é a relação da variável com os seus valores anteriores, visto que a modelagem de uma série temporal tem, entre outros objetivos, aprender comportamentos com os dados do passado, para prever cenários futuros \cite{Nielsen}. A \autoref{fig:Fig_7} a seguir, mostra a autocorrelação e a autocorrelação parcial da variável alvo, a autocorrelação nos mostra que a variável alvo possui uma inércia alta, ou seja, varia lentamente, no dia 1 a autocorrelação é 1, e no dia 60 ainda está muito próximo de 1. E com a autocorrelação parcial, podemos concluir que o volume do dia anterior é praticamente o volume de hoje, ou seja, o lag 1 pode ser uma ótima variável preditora já que a \acrshort{PACF} é 1. Entretando pode-se observar que o mesmo já não vale para o lag 2 em diante, pois a \acrshort{PACF} cai abruptamente.  
 
 \begin{figure}[H]
 	\centering
@@ -134,9 +134,9 @@ No gráfico da \autoref{fig:Fig_8} acima, ainda, nota-se que ocorrem muitos pico
 
 Com isso, espera-se que a variável exógena de vazão natural auxilie os modelos a entenderem o comportamento do volume útil, visto que seu comportamento acompanha períodos de cheia e estiagem, então espera-se que conforme esta variável varie, mostre ao modelo como o volume deve variar. Entretanto, um dos maiores desafios na utilização de variáveis exógenas, principalmente que acontecem em decorrência de fatores naturais, e variam muito, é como prever seus valores para o futuro, garantindo a qualidade dos dados que vamos entregar para o modelo de previsão de volume, os métodos utilizados neste estudo para modelagem e obtenção dessa variável serão discutidos nos próximos capítulos.  
 
-Por sua vez, a vazão jusante, representa o oposto da vazão natural, ela é a saída de água dos reservatórios, seja para abastecimento ou alimentar outros reservatórios e represas. A vazão jusante não é um evento natural como a precipitação e a vazão natural, ela depende da demanda de utilização da água e pode ser controlada conforme gestão da operadora do sistema, a SABESP. Mas está diretamente relacionada ao volume útil dos reservatórios, visto que picos constantes de retirada de água dos mesmos, poderiam ocasionar uma diminuição anormal do volume armazenado, bem como a ocorrência de valores negativos de entrada liquida no reservatório, ou seja, a vazão jusante maior do que a vazão natural, o que pode ocorrer principalmente nos períodos em que se observa vazões naturais muito baixas. Neste sentido, há um entendimento físico de que a SABESP tem liberdade para aumentar ou reduzir essa vazão e, utiliza deste artifício para garantir abastecimento da população de forma que não atinjamos o volume morto ou o reservatório passe a perder perenidade 
+Por sua vez, a vazão jusante, representa o oposto da vazão natural, ela é a saída de água dos reservatórios, seja para abastecimento ou alimentar outros reservatórios e represas. A vazão jusante não é um evento natural como a precipitação e a vazão natural, ela depende da demanda de utilização da água e pode ser controlada conforme gestão da operadora do sistema, o \acrshort{SABESP}. Mas está diretamente relacionada ao volume útil dos reservatórios, visto que picos constantes de retirada de água dos mesmos, poderiam ocasionar uma diminuição anormal do volume armazenado, bem como a ocorrência de valores negativos de entrada liquida no reservatório, ou seja, a vazão jusante maior do que a vazão natural, o que pode ocorrer principalmente nos períodos em que se observa vazões naturais muito baixas. Neste sentido, há um entendimento físico de que o \acrshort{SABESP} tem liberdade para aumentar ou reduzir essa vazão e, utiliza deste artifício para garantir abastecimento da população de forma que não atinjamos o volume morto ou o reservatório passe a perder perenidade 
 
-No gráfico da \autoref{fig:Fig_11} a seguir, pode-se observar a distribuição da vazão jusante comparada a vazão montante ao longo do período analisado, nota-se que os valores são bem menores do que os observados para vazão natural, salvo alguns picos observados em pontos específicos do gráfico. Um aspecto interessante do comportamento dessa variável, é que seu valor varia pouco comparado a variação que acontece nas variáveis que foram analisadas anteriormente. Ainda assim, é possível perceber um aumento nos valores de saída quando se aproxima do final do ano, seguido de uma queda nos meses que antecede o verão, que pode estar relacionado ao racionamento no fornecimento, que geralmente ocorre próximo do verão para controle dos gastos com água, e que coincide com épocas em que o volume do reservatório geralmente está baixo devido ao período de seca que ocorre até setembro, o que pode justificar tais ações por parte da SABESP.  
+No gráfico da \autoref{fig:Fig_11} a seguir, pode-se observar a distribuição da vazão jusante comparada a vazão montante ao longo do período analisado, nota-se que os valores são bem menores do que os observados para vazão natural, salvo alguns picos observados em pontos específicos do gráfico. Um aspecto interessante do comportamento dessa variável, é que seu valor varia pouco comparado a variação que acontece nas variáveis que foram analisadas anteriormente. Ainda assim, é possível perceber um aumento nos valores de saída quando se aproxima do final do ano, seguido de uma queda nos meses que antecede o verão, que pode estar relacionado ao racionamento no fornecimento, que geralmente ocorre próximo do verão para controle dos gastos com água, e que coincide com épocas em que o volume do reservatório geralmente está baixo devido ao período de seca que ocorre até setembro, o que pode justificar tais ações por parte do \acrshort{SABESP}.  
 
 \begin{figure}[H]
 	\centering
@@ -154,7 +154,7 @@ No gráfico da \autoref{fig:Fig_11} a seguir, pode-se observar a distribuição 
 	\fonte{Elaborado pelos autores com base em dados da SABESP (2025).}
 \end{figure}
 
-Uma vez que teremos que modelar as vazões natural e jusante por meio de series temporais, é relevante avaliar alguns gráficos que nos auxiliam a realizar essa modelagem, são eles: o periodograma que nos ajuda a identificar sazonalidade e estimar valores para os ciclos das funções seno e cosseno da série de Fourier; A autocorrelação (ACF) que mede a correlação dos lags da variável com o ela mesma, auxiliando também na identificação de tendência e sazonalidade; A autocorrelação parcial (PACF) que mede a influência de um lag na variável, de forma a excluir efeitos de lags intermediários. Esses gráficos nos ajudam a entender quantos Lags de variável utilizar, como o polinômio de tendência pode ser bem modelado e achar valores para a sazonaldiade.  
+Uma vez que teremos que modelar as vazões natural e jusante por meio de series temporais, é relevante avaliar alguns gráficos que nos auxiliam a realizar essa modelagem, são eles: o periodograma que nos ajuda a identificar sazonalidade e estimar valores para os ciclos das funções seno e cosseno da série de Fourier; A \acrshort{ACF} que mede a correlação dos lags da variável com o ela mesma, auxiliando também na identificação de tendência e sazonalidade; A \acrshort{PACF} que mede a influência de um lag na variável, de forma a excluir efeitos de lags intermediários. Esses gráficos nos ajudam a entender quantos Lags de variável utilizar, como o polinômio de tendência pode ser bem modelado e achar valores para a sazonaldiade.  
 
 As figuras \autoref{fig:Fig_13} e \autoref{fig:Fig_14} mostram o periodograma da vazão jusante e da vazão natural, respectivamente.
 
@@ -246,7 +246,7 @@ As figuras \autoref{fig:Fig_13}, \autoref{fig:Fig_13}, \autoref{fig:Fig_13} e \a
 	\fonte{Elaborado pelos autores com base em dados da SABESP (2025).}
 \end{figure}
 
-Analogamente, nesses gráficos de ACF e PACF da vazão jusante, o lag 1 e, talvez lag2, fazem sentido serem utilizados para realizar previsões na série temporal de vazão jusante.  
+Analogamente, nesses gráficos de \acrshort{ACF} e \acrshort{PACF} da vazão jusante, o lag 1 e, talvez lag2, fazem sentido serem utilizados para realizar previsões na série temporal de vazão jusante.  
 
 \subsection{Relação entre Variáveis}
 
@@ -267,7 +267,7 @@ Outra maneira de avaliar a relação de causalidade entre as variáveis, é obse
 
 Através da análise do gráfico da \autoref{fig:Fig_24}, nota-se que a vazão natural e a chuva de fato têm um comportamento parecido, quando a chuva é alta, as vazões naturais são altas, o que sugere que a chuva tem uma ação de curto prazo sobre a vazão natural. Ainda podemos observar que, a ocorrência de valores altos na vazão natural e chuva precede o aumento do volume útil, quando há picos nessas variáveis a tendência do volume é subir, e quando os valores são baixos logo em seguida o volume começa a cair. No entanto o efeito não é imediato, embora a direção na tendência dos dados mude conforme muda o comportamento dessas variáveis exógenas, o volume não sobe abruptamente. Por fim, nota-se que ocorre o comportamento contrário quando comparados o volume útil com a vazão jusante, os picos de saída do reservatório, geralmente antecedem uma queda no volume.    
 
-Além disso, analisando o gráfico \autoref{fig:Fig_24} a seguir, que apresenta a evolução temporal das vazões a jusante, natural e do volume, tem-se que é possível notar uma relação de áreas entre a variável de vazão natural e volume, o que é esperado no modelo físico, uma vez que a área da vazão natural se refletiria no aumento de volume caso não tivéssemos saída. É possível notar que em períodos que a vazão vem de sequências de alta como entre 2009 e 2013, o volume acompanha (com uma pequena defasagem) e em períodos de sequências de baixa, o volume cai consideravelmente, como é o caso do ano de 2015. Neste gráfico, ainda é possível notar que os picos de vazão jusante ocorreram exatamente nas altas de volume e vazão natural, o que é esperado também, uma vez que temos alta disponibilidade de água, a SABESP diminui tarifas e também disponibiliza mais água, o que faz aumentar o consumo (influenciando períodos de volume menor no futuro). 
+Além disso, analisando o gráfico \autoref{fig:Fig_24} a seguir, que apresenta a evolução temporal das vazões a jusante, natural e do volume, tem-se que é possível notar uma relação de áreas entre a variável de vazão natural e volume, o que é esperado no modelo físico, uma vez que a área da vazão natural se refletiria no aumento de volume caso não tivéssemos saída. É possível notar que em períodos que a vazão vem de sequências de alta como entre 2009 e 2013, o volume acompanha (com uma pequena defasagem) e em períodos de sequências de baixa, o volume cai consideravelmente, como é o caso do ano de 2015. Neste gráfico, ainda é possível notar que os picos de vazão jusante ocorreram exatamente nas altas de volume e vazão natural, o que é esperado também, uma vez que temos alta disponibilidade de água, o \acrshort{SABESP} diminui tarifas e também disponibiliza mais água, o que faz aumentar o consumo (influenciando períodos de volume menor no futuro). 
 
 \begin{figure}[H]
 	\centering
@@ -342,18 +342,215 @@ A definição da melhor arquitetura foi realizada através de uma busca em grade
 \item \textbf{Features Auxiliares no modelo de volume}: Realização de testes de inclusão e exclusão de variáveis (feature selection), visando verificar se o acréscimo da climatologia de volume e dos termos híbridos de Fourier trazia ganho real de desempenho à regressão final ou apenas aumentava a complexidade do modelo desnecessariamente.
 \end{itemize}
 
-Todas as variáveis numéricas foram submetidas a padronização (StandardScaler) para garantir a convergência adequada dos algoritmos baseados em distância (KNN) e regularização (Ridge).
+Todas as variáveis numéricas foram submetidas a padronização (StandardScaler) para garantir a convergência adequada dos algoritmos baseados em distância (\acrshort{KNN}) e regularização (Ridge).
 
 \subsection{Avaliação do Modelo e Métricas de Desempenho}
 
 A avaliação do modelo foi conduzida de forma compatível com a natureza temporal dos dados, evitando vazamento de informação do futuro para o passado (data leakage). Para isso, utilizou-se validação cruzada específica para séries temporais por meio de divisões sequenciais (TimeSeriesSplit), com múltiplos cortes ao longo do histórico e janela fixa de teste (horizonte) em cada divisão (fold). Em cada fold, os modelos de vazão e volume foram ajustados exclusivamente com dados anteriores e, na sequência, executou-se a previsão do volume no bloco de teste de maneira recursiva multi-step, ou seja, as predições geradas em um instante foram utilizadas para compor os atributos do instante seguinte. O desempenho foi mensurado por métricas de erro aplicadas à variável-alvo (Volume Útil Armazenado (\%)), utilizando:
 
 \begin{itemize}
-\item \textbf{MAE (Mean Absolute Error)}: que mede o erro médio absoluto, fornecendo interpretação direta em unidades do volume e robustez relativa a erros extremos.
-\item \textbf{RMSE (Root Mean Squared Error)}: que mede a raiz do erro quadrático médio, penalizando mais fortemente grandes desvios e sendo útil para comparar configurações quando se deseja reduzir erros de maior magnitude.
+\item \textbf{\acrfull{MAE}}: que mede o erro médio absoluto, fornecendo interpretação direta em unidades do volume e robustez relativa a erros extremos.
+\item \textbf{\acrfull{RMSE}}: que mede a raiz do erro quadrático médio, penalizando mais fortemente grandes desvios e sendo útil para comparar configurações quando se deseja reduzir erros de maior magnitude.
 \end{itemize}
 
-Para cada combinação de modelos e hiperparâmetros do grid search, as métricas foram calculadas em todos os folds e agregadas por média, adotando-se o menor erro médio (com ênfase em RMSE e apoio do MAE) como critério para seleção da configuração final.
+Para cada combinação de modelos e hiperparâmetros do grid search, as métricas foram calculadas em todos os folds e agregadas por média, adotando-se o menor erro médio (com ênfase em \acrshort{RMSE} e apoio do \acrshort{MAE}) como critério para seleção da configuração final.
 
-Outros modelos clássicos como ARIMA/SARIMAX foram considerados e avaliados, porém apresentaram desempenho inferior ao obtido pela estratégia de decomposição da vazão + modelagem do ciclo por ML + regressão do volume com variável exógena, especialmente no contexto de previsão recursiva. Por esse motivo, optou-se por concentrar o desenvolvimento e a tunagem na abordagem híbrida descrita acima, que demonstrou melhor capacidade preditiva no conjunto de dados avaliado.
+Outros modelos clássicos como \acrshort{ARIMA}/\acrshort{SARIMAX} foram considerados e avaliados, porém apresentaram desempenho inferior ao obtido pela estratégia de decomposição da vazão + modelagem do ciclo por ML + regressão do volume com variável exógena, especialmente no contexto de previsão recursiva. Por esse motivo, optou-se por concentrar o desenvolvimento e a tunagem na abordagem híbrida descrita acima, que demonstrou melhor capacidade preditiva no conjunto de dados avaliado.
+
+\section{Arquitetura}
+
+Esta seção tem o objetivo de apresentar a arquitetura proposta e implementada em ambiente de nuvem \acrfull{AWS}. 
+
+Houve preferência pela utilização de recursos de computação sem servidor a fim de reduzir custos, já que a pipeline de treinamento não necessita de máquinas dedicadas em funcionamento durante todo o tempo. 
+
+A arquitetura foi estruturada em módulos independentes de coleta, treinamento, promoção de modelos e previsão, conforme ilustrado na \autoref{fig:Fig_25} a seguir. 
+
+\begin{figure}[H]
+	\centering
+	\caption{Diagrama da Arquitetura da Aplicação.}
+	\label{fig:Fig_25}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem25.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+\subsection{Coleta de Dados}
+
+A etapa de coleta de dados foi executada por meio de funções Lambda, que acessam a URL "https://mananciais.sabesp.com.br/api/v4" e armazenam os dados em um arquivo "\acrfull{CSV}", armazenado em um serviço "Amazon \acrfull{S3}". 
+
+O serviço \acrshort{AWS} Lambda oferece um meio de executar código sem servidor, de maneira escalável. No cenário em questão, em que dados novos são produzidos diariamente, o código só precisa ser executado, no momento de fazer novas previsões ou treinamento de modelos.  
+
+Já o serviço \acrshort{AWS} "\acrshort{S3}" é um tipo de armazenamento para arquivos, que não necessita de gerenciamento de servidores dedicados. O \acrshort{S3} possui o conceito de "bucket", que são o "espaço" de armazenamento, e que internamente podem conter pastas para organização.  
+
+\subsection{MLFlow}
+
+O Servidor \acrfull{MLflow} permite gerenciar de maneira centralizada todo o ciclo de vida de modelos de machine learning. É possível registrar treinamentos executados, parâmetros utilizados, métricas de resultado, artefatos utilizados e os modelos selecionados para produção.  
+
+Para implementar o servidor \acrshort{MLflow} foi utilizado o serviço Amazon \acrfull{ECS}, além de um "Bucket \acrshort{S3}" para armazenamento de artefatos e um banco de dados Postgres para armazenamento de experimentos, resultados e métricas. 
+
+O serviço Amazon \acrshort{ECS} é um serviço de orquestração de containers que permite executar aplicações em nuvem de forma gerenciada. A aplicação é empacotada como uma imagem de container, construída a partir de um arquivo "Dockerfile" e armazenada no \acrfull{ECR},  
+
+No \acrshort{ECS}, essa imagem é referenciada por uma definição de tarefa (task definition), que descreve como o container deve ser executado: imagem utilizada, variáveis de ambiente, bem como definições de hardware. A definição de tarefa é um modelo de execução que descreve o container sem executá-lo. 
+
+Já o serviço do \acrshort{ECS} é responsável por manter a execução dessa tarefa ao longo do tempo. Ele define quantas instâncias da tarefa devem estar ativas, gerencia a necessidade de reinicializações automáticas em caso de falha, integra-se com balanceadores de carga e possibilita escalabilidade. Portanto, o serviço garante a efetiva execução do container. 
+
+Para o banco Postgres foi utilizado o AuroraDB, por ser autogerenciado. Este banco, se utilizado 24 horas, ficaria mais caro que uma solução "tradicional" (Amazon \acrfull{RDS}). Contudo, se o servidor \acrshort{MLflow} for desligado quando não utilizado, o número de conexões com o banco de dados cai para zero e o AuroraDB na versão "serverless v2" pode desligar todas suas instâncias, trazendo economia. 
+
+O serviço \acrshort{ECS}, em cada execução tem IP de acesso diferente. Para poder acessar em uma única URL, foi necessário configurar um balanceador de carga ("Load Balancer"). 
+
+Já para armazenamento de variáveis de ambiente, foi utilizado o "Armazem de Parâmetros", dentro do serviço "\acrshort{AWS} System Manager". 
+
+\subsection{Pipeline de Treinamento e Previsão}
+
+A execução da pipeline de treino também foi feita utilizando "Amazon \acrshort{ECS}", pela simplicidade em executar.  
+
+O container que atua como pipeline foi projetado de forma idempotente, permitindo que o container execute um script Python responsável por decidir sobre a necessidade de retreino, registrar experimentos no \acrshort{MLflow}, recuperar o modelo em produção e persistir os resultados das previsões em um arquivo ".\acrshort{CSV}" no Amazon \acrshort{S3}. 
+
+\subsection{Orquestração}
+
+A cada ciclo de treino e previsão, é necessário o provisionamento temporário do servidor \acrshort{MLflow}, a coleta de dados, a execução da pipeline e o desligamento dos recursos ao final do processo. 
+
+Para essa orquestração, foi utilizado o serviço "Amazon Step Functions" e sua execução foi acionada por meio do serviço "Amazon EventBridge". 
+
+O serviço "Step Functions" permite gerenciar fluxos de trabalho definidas como máquinas de estado. A grande vantagem em sua utilização é a integração com outros serviços \acrshort{AWS}, o que o torna poderoso em um cenário de construção de software nativo em nuvem. 
+
+O Amazon EventBridge atua como um “barramento de eventos”, ideal para aplicações orientadas a eventos. Para testes, a frequência de acionamento definida foi diária, mas considerando um horizonte de previsão de 90 dias, essa frequência, em produção, foi definida como semanal. 
+
+O diagrama da função Step Function pode ser visto na \autoref{fig:Fig_26} a seguir. Os temporizadores mostrados na máquina de estados foram posicionados antes e depois da execução, com o intuito de esperar o servidor \acrshort{MLflow} ficar disponível e, após o término da execução, deixar o servidor ligado por tempo suficiente para que algum operador humano consiga verificar os resultados. 
+
+\begin{figure}[H]
+	\centering
+	\caption{Máquina de Estados da Orquestração.}
+	\label{fig:Fig_26}
+	\includegraphics[width=0.50\textwidth,keepaspectratio]{figuras/imagem26.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+\section{Resultados}
+
+Em nossas análises e metodologia escolhida, optamos por utilizar modelo híbrido, entretanto, para essa modelagem ter resultados eficientes, é necessária uma boa engenharia de variáveis. Em nosso modelo, como explícitamos ao longo do trabalho, criamos algumas variáveis opcionais ao modelo que funcionaram como hiperparâmetros para seleção do melhor modelo (em atividades de retreino, essa tunagem é refeita para selecionar um novo modelo e finalizar o ciclo de vida do anterior), são eles:
+
+\begin{itemize}
+\item \textbf{Modelo de vazão}: seleciona o tipo de modelo entre KNN e Floresta Aleatória (RandomForest) para modelar o ciclo da vazão natural e da vazão jusante;
+\item \textbf{Cycle logic}: seleciona entre adicionar ou não um fator de amortecimento no ciclo da vazão natural de modo a evitar que ela escale a valores altos e influencie num volume sempre crescente;
+\item \textbf{Modelo de volume}: seleciona o tipo de modelo linear para o volume, entre a Regressão linear, a Ridge e a Lasso (de modo a avaliar se a regularização melhora o modelo). Note que aqui, como temos entradas aditivas (Vazão, tendência e sazonalidade), não se faz necessário um modelo não linear;
+\item \textbf{Diff1}: seleciona se o modelo de volume usará como variável a diferença do volume atual pelo anterior;
+\item \textbf{Diff2}: Seleciona se o modelo de volume usará como variável a diferença do volume anterior pelo anterior a ele;
+\item \textbf{Use\_vol\_clim}: Seleciona se o modelo de volume, ao final, na previsão, usará climatologia ao invés da tendência e sazonalidade na adição ao ciclo de volume.
+\end{itemize}
+
+Para otimização do modelo, implementamos um Grid Search integrado a uma validação cruzada temporal. O processo consistiu em 10 rodadas de teste para cada configuração: iniciou-se com uma base histórica, prevendo os 90 dias seguintes; sucessivamente, a base de treino foi expandida em blocos de 90 dias para novas previsões. O desempenho global de cada parâmetro foi mensurado pela média do Erro Quadrático Médio (\acrshort{RMSE}) e do Erro Médio Absoluto (\acrshort{MAE}), sendo o \acrshort{RMSE} o decisor para a escolha da melhor configuração.
+
+A \autoref{tab:resultados_grid_search} apresenta os 10 RMSE mais baixos e suas configurações:
+
+\begin{table}[H]
+	\centering
+	\caption{Top 10 configurações de hiperparâmetros ordenadas por RMSE.}
+	\label{tab:resultados_grid_search}
+	\footnotesize
+	\resizebox{\textwidth}{!}{
+	\begin{tabular}{|c|c|c|c|c|c|c|}
+		\hline
+		\textbf{Modelo} & \textbf{Cycle} & \textbf{Modelo} & \textbf{use\_} & \textbf{use\_} & \textbf{use\_vol\_} & \textbf{RMSE} \\
+		\textbf{Vazão} & \textbf{Logic} & \textbf{Volume} & \textbf{diff1} & \textbf{diff2} & \textbf{clim} & \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & LinearRegression() & True & True & False & 2,121061 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & Ridge() & True & True & False & 2,133695 \\
+		\hline
+		RandomForestRegressor() & damping\_specific & Ridge() & True & False & False & 2,165826 \\
+		\hline
+		RandomForestRegressor() & damping\_specific & LinearRegression() & True & True & False & 2,166875 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & LinearRegression() & True & False & False & 2,168468 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & Ridge() & True & False & False & 2,178753 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & LinearRegression() & False & False & False & 2,237026 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & LinearRegression() & False & True & False & 2,238890 \\
+		\hline
+		RandomForestRegressor() & damping\_specific & LinearRegression() & True & False & False & 2,242538 \\
+		\hline
+		KNeighborsRegressor() & damping\_specific & Ridge() & False & False & False & 2,243728 \\
+		\hline
+	\end{tabular}
+	}
+	\fonte{Elaborado pelos autores (2025).}
+\end{table}
+
+Em uma análise rápida, podemos notar que para termos um melhor modelo, utilizar damping, diff1, diff2 e modelo para o ciclo da vazão foram as melhores configurações. Para o modelo de ciclo da vazão, a utilização do \acrshort{KNN} ou RandomForest não afeta muito, mas o \acrshort{KNN} foi treinado muito mais rápido e na geração de previsões ambos são quase iguais.
+
+Com essa tabela, podemos ver também que a média dos \acrshort{RMSE} é na faixa de 2,1 a 2,2 para essas configurações que comentei acima, desta forma, podemos extrapolar que o modelo pode errar próximo de 5 e 6 nas suas previsões.
+
+Abaixo temos alguns gráficos com a média das previsões para determinados parâmetros, a fim de identificar os que mais afetam e o melhor modelo. Vale notar, que essa análise foi feita para os dados finais de validação, estes gráficos ajudam a dar uma visão de separação máxima de erro (descolamento entre curvas).  
+
+\begin{figure}[H]
+	\centering
+	\caption{Gráfico comparativo das previsões usando ou não o parâmetro de amortecimento do valor da vazão com o valor real.}
+	\label{fig:Fig_27}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem27.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\caption{Gráfico comparativo das previsões usando ou não o parâmetro de diferença de primeira ordem do volume com o valor real.}
+	\label{fig:Fig_28}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem28.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\caption{Gráfico comparativo das previsões usando ou não o parâmetro de diferença de segunda ordem do volume com o valor real.}
+	\label{fig:Fig_29}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem29.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+\begin{figure}[H]
+	\centering
+	\caption{Gráfico comparativo das previsões usando ou não o parâmetro de climatologia do volume com o valor real.}
+	\label{fig:Fig_30}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem30.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+Dos gráficos, pode-se observar que a utilização do damping aproxima muito mais do caso real (pode ser por conta de um cenário de baixa de volume, mas se for, com o tempo, nossas métricas indicarão necessidade de retreino devido o ciclo de vida do modelo). Além disso, os outros fatores parecem afetar muito pouco na aproximação do valor real do modelo, pelo menos para esses dados de validação, mas sabemos que fisicamente são parâmetros que podem causar influência significativa.  
+
+\section{Viabilidade Socioeconômica do Projeto}
+
+A viabilidade de um projeto de Machine Learning aplicado à gestão de recursos hídricos vai além da análise financeira tradicional. O abastecimento de água é um ativo crítico de segurança nacional e estabilidade socioeconômica. Neste contexto, a ferramenta desenvolvida atua como um sistema de suporte à tomada de decisão, cuja principal proposta de valor é a antecipação de cenários críticos, permitindo a transição de uma gestão reativa baseada em gerenciamento de crise, para uma gestão preditiva visando a mitigação de riscos.
+
+Embora a mensuração exata do retorno sobre o investimento envolva variáveis que são difíceis de discretizar em valores, a viabilidade socioeconômica do projeto justifica-se pela análise do custo de oportunidade e do custo de mitigação de desastres. A capacidade de antever níveis críticos do \acrshort{SC} gera valor em quatro pilares fundamentais:
+
+\begin{itemize}
+\item \textbf{Proteção Social}: A prevenção de colapsos no abastecimento protege prioritariamente as populações em situação de vulnerabilidade social, historicamente as mais afetadas por racionamentos e pela falta de saneamento básico. A continuidade do serviço é, portanto, uma medida de saúde pública e dignidade humana.
+
+\item \textbf{Segurança Sanitária}: Ao evitar o esgotamento do volume útil, minimiza-se a necessidade de captação do volume morto, que exige processos de tratamento mais complexos e onerosos, além de apresentar riscos elevados de concentração de poluentes e metais pesados.
+
+\item \textbf{Economia (Indústria e Agronegócio)}: A água é insumo primário para a indústria de transformação e para a agricultura. A previsibilidade de oferta permite que esses setores planejem suas operações, evitando paradas de produção que impactam o PIB regional e a empregabilidade.
+
+\item \textbf{Geração de energia}: Dada a dependência da matriz energética brasileira em relação às hidrelétricas, a gestão eficiente dos reservatórios impacta diretamente o custo da energia. Evitar o acionamento de bandeiras tarifárias vermelhas (usinas termelétricas) resulta em economia direta para toda a sociedade.
+\end{itemize}
+
+Dito isso, é importante ressaltar que o modelo proposto não se destina ao usuário final, mas serve como uma ferramenta de inteligência para a operadora do sistema, no caso do Cantareira, o \acrshort{SABESP}, pois ela é a responsável e possui conhecimento técnico sobre as ações que pode e deve tomar (a disponibilização a um usuário comum poderia levar a cenários catastróficos de ``desespero'' em caso de previsão de falta de abastecimento).
+
+Ao fornecer insights baseados em dados, o projeto empodera os gestores para implementar medidas graduais de economia de água, evitando choques abruptos no abastecimento. Desta forma, não há necessidade de sistemas e servidores robustos para múltiplos acessos ou múltiplas requisições de informações, em nossa construção, estimamos que a informação (dados de previsão e alerta de possível criticidade futura) deva ser repassada via canais oficiais (como email) em forma de relatório, sem necessidade de disponibilizar uma ferramenta interativa.
+
+Do ponto de vista financeiro, a arquitetura do projeto foi desenhada sob os princípios de computação em nuvem e arquitetura Serverless, o que elimina a necessidade de altos investimentos iniciais em hardware, convertendo os custos para um modelo operacional de pagamento por uso (\acrfull{OPEX}). Realizou-se uma simulação de custos operacionais utilizando a calculadora oficial do \acrshort{AWS}, considerando os recursos de armazenamento, computação e banco de dados utilizados na solução final. A \autoref{fig:Fig_31} mostra uma estimativa inicial do custo mensal que desconsidera a quantidade de \acrfull{ACU}s do banco de dados Aurora. Como esse banco consegue reduzir provisionamento na ausência de conexões, para melhor estimativa, foi necessário calcular separadamente.  
+
+\begin{figure}[H]
+	\centering
+	\caption{Estimativa de Custos Operacionais na Calculadora da AWS.}
+	\label{fig:Fig_31}
+	\includegraphics[width=0.90\textwidth,keepaspectratio]{figuras/imagem31.png}
+	\fonte{Elaborado pelos autores.}
+\end{figure}
+
+A estimativa considerou o banco de dados Aurora ativo durante 36 horas por mês (5\% de utilização). Para encontrar este valor, foi assumido que a pipeline executa diariamente, com duração de 30 minutos quando não é necessário retreinar o modelo e 3 horas quando há necessidade. No melhor cenário, em que não é necessário executar retreino durante um mês inteiro, são 15 horas por mês (2,08\%). No pior cenário em que é necessário executar retreino todos os dias, e levando em consideração que a métrica que define essa necessidade é semanal, seriam 4 treinos por mês, resultando em 25 horas (3,47\%). O valor obtido foi arredondado para cima, para ter uma margem de segurança na estimativa. 
+
+O custo de 1 ACU verificado a partir da calculadora foi de US\$ 87.60 dólares, sendo que 5\% de utilização corresponde a US\$ 4,38 dólares. Somados aos US\$ 20,12 dólares da estimativa inicial da figura apresentada, resulta em um custo mensal de aproximadamente US\$ 24,50 dólares, desconsiderando impostos. 
+
+Ao confrontar o custo operacional mensal na ordem de centenas de reais com os prejuízos potenciais de uma crise hídrica que podem chegar a ordem de bilhões de reais, considerando perdas industriais, custos de saúde e tratamento de água emergencial, a relação custo-benefício apresenta-se favorável. O custo de manutenção do sistema é mínimo comparado ao valor econômico e social dos ativos que ele visa proteger, comprovando a alta viabilidade e a sustentabilidade financeira do projeto a longo prazo.
 

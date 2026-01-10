@@ -54,12 +54,16 @@ brazil				% o último idioma é o principal do documento
 \bancac{Prof. Terceiro, Dr.} %Terceiro membro da banca
 
 %Resumo e palavras-chave do trabalho
-\resumotcc{No resumo são ressaltados o objetivo da pesquisa, o método utilizado, as discussões e os resultados com destaque apenas para os pontos principais. O resumo deve ser significativo, composto de uma sequência de frases concisas, afirmativas, e não de uma enumeração de tópicos. Não deve conter citações. Deve usar o verbo na voz ativa e na terceira pessoa do singular. O texto do resumo deve ser digitado, em um único bloco, sem espaço de parágrafo. O espaçamento entre linhas é simples e o tamanho da fonte é 12. Abaixo do resumo, informar as palavras-chave (palavras ou expressões significativas retiradas do texto) ou, termos retirados de thesaurus da área. Deve conter de 150 a 500 palavras. O resumo é elaborado de acordo com a NBR 6028.}
-\palavraschave{palavra-chave 1; palavra-chave 2; palavra-chave 3.}
+\resumotcc{A gestão eficiente dos recursos hídricos é fundamental para garantir o abastecimento de água e manter a sustentabilidade socioeconômica da população. O Sistema Cantareira destaca-se como um dos principais produtores de água da Região Metropolitana de São Paulo, sendo responsável pelo abastecimento de aproximadamente 46\% da população. Diante da relevânciadesse sistema e da recorrência de eventos climáticos extremos, torna-se essencial o desenvolvimento de ferramentas capazes de antecipar cenários críticos de disponibilidade hídrica. Este trabalho tem como objetivo contribuir para a melhoria da gestão do Sistema Cantareira por meio da previsão da disponibilidade de água, utilizando técnicas de análise de séries temporais e aprendizado de máquina. A proposta consiste na construção de uma arquitetura capaz de coletar e tratar automaticamente dados operacionais disponibilizados diariamente pela SABESP, modelar o comportamento do volume útil do sistema (\%) e gerar previsões em um horizonte temporal definido. 
+
+A metodologia adotada baseia-se em uma abordagem híbrida de decomposição da série temporal, na qual os componentes de tendência e sazonalidade são modelados por algoritmos lineares, enquanto as oscilações cíclicas e não lineares são capturadas por modelos de aprendizado de máquina clássicos, treinados sobre os resíduos. Variáveis exógenas, como vazão natural e vazão jusante, são incorporadas ao processo para representar a dinâmica física do sistema. As previsões resultantes são apresentadas por meio de visualizações que permitem identificar, de forma antecipada, a aproximação de níveis críticos de armazenamento, em especial o limiar de 30\% do volume útil, associado a estados de alerta e restrição. Além disso, há parâmetros a serem testados caso o desempenho do modelo caia com o passar do tempo, incorporando o retreino e avaliação de novos modelos como parte do ciclo de vida de Machine Learning do projeto.}
+\palavraschave{Séries temporais; Recursos hídricos; Sistema Cantareira; Aprendizado de máquina; Previsão de disponibilidade de água.}
 
 %Abstract e keywords do trabalho
-\abstracttcc{Resumo traduzido para outros idiomas, neste caso, inglês. Segue o formato do resumo feito na língua vernácula. As palavras-chave traduzidas, versão em língua estrangeira, são colocadas abaixo do texto precedidas pela expressão ``Keywords'', separadas por ponto e vírgula.}
-\keywords{keyword 1; keyword 2; keyword 3.}
+\abstracttcc{Efficient management of water resources is fundamental to ensure water supply and maintain the socioeconomic sustainability of the population. The Cantareira System stands out as one of the main water producers for the São Paulo Metropolitan Region, responsible for supplying approximately 46\% of the population. Given the significance of this system and the recurrence of extreme weather events, the development of tools capable of anticipating critical scenarios of water availability becomes essential. This study aims to contribute to improving the management of the Cantareira System through water availability forecasting, utilizing time series analysis and machine learning techniques. The proposal involves building an architecture capable of automatically collecting and processing operational data made available daily by SABESP, modeling the behavior of the system's useful volume (\%), and generating forecasts within a defined time horizon.
+
+The adopted methodology is based on a hybrid time series decomposition approach, in which trend and seasonality components are modeled using linear algorithms, while cyclical and non-linear oscillations are captured by classic machine learning models trained on residuals. Exogenous variables, such as natural flow (inflow) and downstream flow (outflow), are incorporated into the process to represent the physical dynamics of the system. The resulting forecasts are presented through visualizations that allow for the early identification of approaching critical storage levels, specifically the 30\% useful volume threshold associated with alert and restriction states. Furthermore, parameters are established to be tested should model performance degrade over time, incorporating retraining and the evaluation of new models as part of the project's Machine Learning lifecycle.}
+\keywords{Time series; Water resources; Cantareira System; Machine learning; Water availability forecasting.}
 
 %Agradecimentos (opcional). Caso não queira inserir, deixe em branco (\agradecimentostcc{} )
 \agradecimentostcc{Inserir os agradecimentos aos colaboradores à execução do trabalho.}
@@ -68,11 +72,11 @@ brazil				% o último idioma é o principal do documento
 \epigrafetcc{Texto da Epígrafe. Citação relativa ao tema do trabalho. É opcional. A epígrafe pode também aparecer na abertura de cada seção ou capítulo. Deve ser elaborada de acordo com a NBR 10520. (SOBRENOME do autor da epígrafe, ano)}
 
 %Decatória (opcional). Caso não queira inserir, deixe em branco (\dedicatoriatcc{} )
-\dedicatoriatcc{Este trabalho é dedicado aos meus colegas de classe e aos meus queridos pais.}
+\dedicatoriatcc{Este trabalho é dedicado aos nossos professores e colegas de classe e aos nossos queridos pais.}
 
 %Lista de quadros
 %Além de figuras e tabelas, o TCC contém quadros? Caso afirmativo digite sim ou deixe em branco para não (\contemquadros{}).
-\contemquadros{sim}
+\contemquadros{}
 
 %Lista de siglas (opcional).
 %Deseja incluir lista de abreviaturas e siglas? Caso afirmativo digite sim ou deixe em branco para não (\contemsiglas{}).
@@ -80,7 +84,7 @@ brazil				% o último idioma é o principal do documento
 
 %Lista de símbolos (opcional).
 %Deseja incluir lista de símbolos? Caso afirmativo digite sim ou deixe em branco para não (\contemsimbolos{}).
-\contemsimbolos{sim}
+\contemsimbolos{}
 
 %-------------------------FIM DOS DADOS BÁSICOS DO TCC--------------------------------------------
 
@@ -270,15 +274,15 @@ brazil				% o último idioma é o principal do documento
 	
 	
 	% Apêndices
-    \begin{apendicesenv}
+    %\begin{apendicesenv}
     	%\partapendices* 
-    	\input{pos_textual/apendice_a}
-    \end{apendicesenv}
+    	%\input{pos_textual/apendice_a}
+    %\end{apendicesenv}
 
     % Anexos
-    \begin{anexosenv}
+    %\begin{anexosenv}
     	%\partanexos*
-    	\input{pos_textual/anexo_a}
-    \end{anexosenv}
+    	%\input{pos_textual/anexo_a}
+    %\end{anexosenv}
 
 \end{document}
