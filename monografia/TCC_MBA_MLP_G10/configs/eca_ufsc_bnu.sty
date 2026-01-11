@@ -270,15 +270,19 @@ title={\listadesimbolosname}
 % Possibilita criação de Quadros e Lista de quadros.
 \newcommand{\quadroname}{Quadro}
 \newcommand{\listofquadrosname}{Lista de quadros}
-\newfloat[chapter]{quadro}{loq}{\quadroname}
+\makeatletter
+\newfloat{quadro}{loq}{\quadroname}
 \newlistof{listofquadros}{loq}{\listofquadrosname}
 \newlistentry{quadro}{loq}{0}
 % configurações para atender às regras da ABNT
 \setfloatadjustment{quadro}{\centering}
-\counterwithout{quadro}{chapter}
-\renewcommand{\cftquadroname}{\quadroname\space} 
-\renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
-\setfloatlocations{quadro}{hbtp} 
+\counterwithin{quadro}{chapter}
+\@ifundefined{cftquadroname}{}{%
+	\renewcommand{\cftquadroname}{\quadroname\space} 
+	\renewcommand*{\cftquadroaftersnum}{\hfill--\hfill}
+}
+\setfloatlocations{quadro}{hbtp}
+\makeatother 
 
 
 % Espaçamentos entre linhas e parágrafos 
