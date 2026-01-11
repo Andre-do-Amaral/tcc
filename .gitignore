@@ -68,6 +68,7 @@ poetry.lock
 # Windows
 Thumbs.db
 desktop.ini
+*:Zone.Identifier
 
 # Linux
 *~
